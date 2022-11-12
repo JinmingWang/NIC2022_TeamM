@@ -12,3 +12,4 @@
 - One-Max problem: Find the maximum sum of a length N bit string (a string consisting of only 1s and 0s)
 - Conatraints
     1. Algorithm should solve them problem with above 95% chance (find the actually maximum sum 95 time out of 100 runs)
+    2. Solve the problem as late as possible, with 1000 generations
