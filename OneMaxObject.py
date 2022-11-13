@@ -1,5 +1,7 @@
+from __future__ import annotations  # Requires Python 3.7+
 import random
 from typing import *
+
 
 """
 This script implements a useful BitString object, it defines a way to represent bitstring, and provides some methods
@@ -8,9 +10,8 @@ to manipulate bitstrings, especially some methods related to Evolutionary Algori
 A test function is added at the end, you can read and run it to know how to operate on BitString instances.
 """
 
-Bitstring = Any
-
 class BitString:
+    n_fitness_evals = 0
     def __init__(self, length: int):
         """
         :param length:
@@ -58,7 +59,7 @@ class BitString:
             self.bits[key] = 1 if value in [1, "1", True] else 0
 
 
-    def __and__(self, other):
+    def __and__(self, other: BitString):
         """ bitwise and """
         new_string = BitString(self.__length)
         new_string.bits = list(map(lambda b1, b2: b1 & b2, self, other))
@@ -80,7 +81,7 @@ class BitString:
         """ to check whether the bit string contains only bit 1 """
         return self.fitness == self.__length
 
-    def copy(self) -> Bitstring:
+    def copy(self) -> BitString:
         """ This is implemented to prevent multiple variables point to the same memory address """
         new_bitstring = BitString(self.__length)
         new_bitstring.bits = self.bits[:]
@@ -109,7 +110,7 @@ class BitString:
             self.revertBit(i)
 
     @staticmethod
-    def singlePointCrossover(bs1: Bitstring, bs2: Bitstring, point: int) -> Bitstring:
+    def singlePointCrossover(bs1: BitString, bs2: BitString, point: int) -> BitString:
         """
         Do single point crossover
         :param bs1: first bitstring
@@ -123,7 +124,7 @@ class BitString:
         return new_bitstring
 
     @staticmethod
-    def randomMaskCrossover(bs1: Bitstring, bs2: Bitstring) -> Bitstring:
+    def randomMaskCrossover(bs1: BitString, bs2: BitString) -> BitString:
         """
         Do random mask crossover
         :param bs1: bitstring 1
@@ -137,7 +138,7 @@ class BitString:
         return new_bitstring
 
     @staticmethod
-    def zeroString(length: int) -> Bitstring:
+    def zeroString(length: int) -> BitString:
         """
         Return a bitstring containing all 0
         :param length: bitstring length
@@ -148,7 +149,7 @@ class BitString:
         return bit_string
 
     @staticmethod
-    def oneString(length: int) -> Bitstring:
+    def oneString(length: int) -> BitString:
         """
         Return a bitstring containing all 1
         :param length: bitstring length
