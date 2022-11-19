@@ -109,6 +109,15 @@ class BitString:
         for i in indices:
             self.revertBit(i)
 
+    def probabilisticMutation(self, rate: float) -> None:
+        """
+        Mutate the bitstring, revert each bit with certain probability
+        :param rate: the probability of revert a bit
+        """
+        for i in range(self.__len__()):
+            if random.random() < rate:
+                self.revertBit(i)
+
     @staticmethod
     def singlePointCrossover(bs1: BitString, bs2: BitString, point: int) -> BitString:
         """
