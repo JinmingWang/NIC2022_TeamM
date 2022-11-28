@@ -11,13 +11,18 @@ A test function is added at the end, you can read and run it to know how to oper
 """
 
 class BitString:
+    # This class variable is used to count how many fitness evaluations has been done
+    # increase this value using self.__class__.n_fitness_evals += 1 when the bitstring is initialized or changed
+    # If the solver is executed multiple times, you need to zero this value manually
     n_fitness_evals = 0
     def __init__(self, length: int):
         """
-        :param length:
+        This class represent a bitstring, you can find many useful methods here
+        :param length: the length of the bitstring
         """
         self.__length = length
         self.bits = [random.randint(0, 1) for _ in range(length)]
+        self.__class__.n_fitness_evals += 1
 
     @property
     def fitness(self) -> int:
@@ -57,7 +62,6 @@ class BitString:
                 self.bits[k] = 1 if value[i] in [1, "1", True] else 0
         else:
             self.bits[key] = 1 if value in [1, "1", True] else 0
-
 
     def __and__(self, other: BitString):
         """ bitwise and """
@@ -108,6 +112,7 @@ class BitString:
 
         for i in indices:
             self.revertBit(i)
+        self.__class__.n_fitness_evals += 1
 
     def probabilisticMutation(self, rate: float) -> None:
         """
@@ -117,6 +122,7 @@ class BitString:
         for i in range(self.__len__()):
             if random.random() < rate:
                 self.revertBit(i)
+        self.__class__.n_fitness_evals += 1
 
     @staticmethod
     def singlePointCrossover(bs1: BitString, bs2: BitString, point: int) -> BitString:
@@ -169,6 +175,50 @@ class BitString:
         return bit_string
 
 
+class Population(list):
+    def __init__(self, size: int, bitstring_length: int):
+        """
+        Population class, it is actually a list object, but with some additional methods like getBest and
+        tournamentSelect, you can use this object like how you use a list.
+        :param size: population size
+        :param bitstring_length: the length of all bitstrings
+        """
+        super(Population, self).__init__()
+        # Popularize myself, so when you initialize an instance of this object, what you will get is a
+        # normal python list, but filled with values, and have some additional methods
+        self.size = size
+        for _ in range(self.size):
+            self.append(BitString(bitstring_length))
+
+    def getBest(self) -> BitString:
+        """ Get the best bitstring in the population """
+        return max(self, key=lambda bs: bs.fitness)
+
+    def getAvgFitness(self) -> float:
+        """ Get the average fitness of the entire population """
+        return sum([bitstring.fitness for bitstring in self]) / self.size
+
+    def tournamentSelect(self, tournament_size: int, n_select: int) -> List[BitString]:
+        """
+        Randomly sample tournament_size elements in population and choose the best among them, repeat n_sleecct times
+        :param tournament_size: how many to sample from the population
+        :param n_select: how many elements selected finally
+        :return: a list of elements selected from tournament
+        """
+        selected = []
+        for _ in range(n_select):
+            group = random.sample(self, tournament_size)
+            selected.append(max(group, key=lambda bs: bs.fitness))
+        return selected
+
+    def __repr__(self):
+        """ rewrite __repr__ for better debugging experience """
+        return f"Population of size {self.size} and bitstring length {len(self[0])}"
+
+    def __str__(self):
+        """ rewrite __str__ for better printing behavior """
+        return " ".join([str(bitstring) for bitstring in self])
+
 def testBitString():
     # initialize
     s = BitString(8)
@@ -216,4 +266,8 @@ def testBitString():
     print("s_3.isAllOnes()", s_3.isAllOnes())
 
 if __name__ == '__main__':
-    testBitString()
+    # testBitString()
+    p = Population(10, 5)
+    print(p)
+    p.pop()
+    print(p)

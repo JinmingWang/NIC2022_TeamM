@@ -1,5 +1,6 @@
-from OneMaxObject import BitString
+from OneMaxObject import BitString, Population
 from typing import *
+import matplotlib.pyplot as plt
 
 SIZE = 15   # size of the problem, the length of bitstring
 N_GENERATIONS = 1000    # number of generations
@@ -22,24 +23,30 @@ class LinearDecayMutationSolver:
         :param min_mutation: the minimum mutation number
         :param n_iter: number of total iterations
         """
-        self.population = [BitString(bitstring_len) for _ in range(population_size)]
+        self.population = Population(population_size, bitstring_len)
         self.mutation_rate = init_mutation
         self.mutation_decay = mutation_decay
         self.min_mutation = min_mutation
         self.n_iter = n_iter
         self.bitstring_len = bitstring_len
+        self.record = {
+            "best fitness": [],
+            "avg fitness": []
+        }
 
     def run(self, verbose: bool=False) -> Tuple[int, int]:
         """ Run the EA """
         best_answer_found_at = -1
-        best_solution = BitString.zeroString(self.bitstring_len)
+        best_fitness_so_far = 0
 
         for i in range(self.n_iter):
             # Find the best bitstring at this time
-            best_bitstring = max(self.population, key=lambda bs: bs.fitness)
+            best_bitstring = self.population.getBest()
+            self.record["best fitness"].append(best_bitstring.fitness)
+            self.record["avg fitness"].append(self.population.getAvgFitness())
             # print(f"Best fitness = {best_bitstring.fitness}")
-            if best_bitstring.fitness > best_solution.fitness:
-                best_solution = best_bitstring.copy()
+            if best_bitstring.fitness > best_fitness_so_far:
+                best_fitness_so_far = best_bitstring.fitness
                 best_answer_found_at = i
 
             # Just take a bitstring in population, and use the best bitstring to replace them
@@ -65,18 +72,32 @@ class LinearDecayMutationSolver:
 def experiment(solver_class: Callable, *args, **kwargs):
     n_solves = 0
     average_found_at = 0
+    avg_fitness_evals = 0
+    EA_records = [0 for _ in range(N_GENERATIONS)]
 
-    for i in range(100):
-        print(f"{i+1}/100")
+    n_tests = 100
+    for i in range(n_tests):
+        BitString.n_fitness_evals = 0
+        print(f"{i+1}/{n_tests}")
         solver = solver_class(*args, **kwargs)
         best_fitness, best_found_at = solver.run()
+        EA_records = [solver.record["best fitness"][i] + EA_records[i] for i in range(N_GENERATIONS)]
         if best_fitness == SIZE:
             n_solves += 1
         average_found_at += best_found_at
+        avg_fitness_evals += BitString.n_fitness_evals
 
-    average_found_at /= 100
-    print(f"OneMax problem solved {n_solves} out of 100 runs, \n"
-          f"Problem is solved with {average_found_at} iterations in average.")
+    avg_fitness_evals /= n_tests
+    average_found_at /= n_tests
+    EA_records = [rec / n_tests for rec in EA_records]
+    print(f"OneMax problem solved {n_solves} out of {n_tests} runs, \n"
+          f"Problem is solved with {average_found_at} iterations in average, \n"
+          f"Average number of fitness evaluations is {avg_fitness_evals}.\n")
+    plt.plot(EA_records)
+    plt.title("The performance curve of LinearDecayMutationSolver")
+    plt.xlabel("Iteration")
+    plt.ylabel(f"Average Best fitness of {n_tests} runs")
+    plt.show()
 
 
 if __name__ == '__main__':
