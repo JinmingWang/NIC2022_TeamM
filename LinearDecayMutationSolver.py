@@ -61,17 +61,17 @@ class LinearDecayMutationSolver:
                     else:
                         self.mutation_rate = self.min_mutation
 
-        best_bitstring = max(self.population, key=lambda bs: bs.fitness)
         if verbose:
+            best_bitstring = self.population.getBest()
             print(f"Final best bitstring = {best_bitstring}, fitness = {best_bitstring.fitness}, "
                   f"found at iteration = {best_answer_found_at}")
 
-        return best_bitstring.fitness, best_answer_found_at
+        return best_fitness_so_far, best_answer_found_at
 
 
 def experiment(solver_class: Callable, *args, **kwargs):
     n_solves = 0
-    average_found_at = 0
+    average_solved_at = 0
     avg_fitness_evals = 0
     EA_records = [0 for _ in range(N_GENERATIONS)]
 
@@ -84,14 +84,14 @@ def experiment(solver_class: Callable, *args, **kwargs):
         EA_records = [solver.record["best fitness"][i] + EA_records[i] for i in range(N_GENERATIONS)]
         if best_fitness == SIZE:
             n_solves += 1
-        average_found_at += best_found_at
+            average_solved_at += best_found_at
         avg_fitness_evals += BitString.n_fitness_evals
 
     avg_fitness_evals /= n_tests
-    average_found_at /= n_tests
+    average_solved_at /= n_solves
     EA_records = [rec / n_tests for rec in EA_records]
     print(f"OneMax problem solved {n_solves} out of {n_tests} runs, \n"
-          f"Problem is solved with {average_found_at} iterations in average, \n"
+          f"Problem is solved with {average_solved_at} iterations in average, \n"
           f"Average number of fitness evaluations is {avg_fitness_evals}.\n")
     plt.plot(EA_records)
     plt.title("The performance curve of LinearDecayMutationSolver")
@@ -101,7 +101,7 @@ def experiment(solver_class: Callable, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    solver = LinearDecayMutationSolver(SIZE, population_size=4, init_mutation=3/15, mutation_decay=2/900/15,
+    solver = LinearDecayMutationSolver(SIZE, population_size=4, init_mutation=3/15, mutation_decay=2/950/15,
                                        min_mutation=1/15, n_iter=N_GENERATIONS)
     solver.run(verbose=True)
 
