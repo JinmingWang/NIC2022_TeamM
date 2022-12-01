@@ -194,6 +194,10 @@ class Population(list):
         """ Get the best bitstring in the population """
         return max(self, key=lambda bs: bs.fitness)
 
+    def getWorst(self) -> BitString:
+        """ Get the worst bitstring in the population """
+        return min(self, key=lambda bs: bs.fitness)
+
     def getAvgFitness(self) -> float:
         """ Get the average fitness of the entire population """
         return sum([bitstring.fitness for bitstring in self]) / self.size

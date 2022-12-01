@@ -11,22 +11,17 @@ After several tests, LinearMutationSolver(15, 4, 9/15, 8/750/15, 1/30, 1000)
 solves the problem in around 98 out of 100 runs, 
 with an average of 730 - 770 iterations
 """
-class LinearDecayMutationSolver:
-    def __init__(self, bitstring_len: int, population_size: int, init_mutation: float, mutation_decay: float,
-                 min_mutation: float, n_iter: int):
+class FunctionalMutationSolver:
+    def __init__(self, bitstring_len: int, population_size: int, mutation_func: Callable[[int], float], n_iter: int):
         """
         A very stupid, simple solver, does poorly on Worst OneMax Problem
         :param bitstring_len: how is the length for bitstring
         :param population_size: population size
-        :param init_mutation: the initial mutation number applied to each bitstring
-        :param mutation_decay: how much to decay mutation on each generation (this decay is subtracted from the mutation)
-        :param min_mutation: the minimum mutation number
+        :param mutation_func: a function that given generation number and returns mutation rate
         :param n_iter: number of total iterations
         """
         self.population = Population(population_size, bitstring_len)
-        self.mutation_rate = init_mutation
-        self.mutation_decay = mutation_decay
-        self.min_mutation = min_mutation
+        self.mutation_func = mutation_func
         self.n_iter = n_iter
         self.bitstring_len = bitstring_len
         self.record = {
@@ -53,13 +48,11 @@ class LinearDecayMutationSolver:
             self.population.pop()
             self.population.insert(0, best_bitstring.copy())
 
+            mutation_rate = self.mutation_func(i)
             for bs in self.population:
                 if not bs.isAllOnes():
-                    bs.probabilisticMutation(self.mutation_rate)
-            if self.mutation_rate - self.mutation_decay > self.min_mutation:
-                self.mutation_rate = self.mutation_rate - self.mutation_decay
-            else:
-                self.mutation_rate = self.min_mutation
+                    bs.probabilisticMutation(mutation_rate)
+
 
         if verbose:
             best_bitstring = self.population.getBest()
@@ -94,21 +87,27 @@ def experiment(solver_class: Callable, *args, **kwargs):
           f"Problem is solved with {average_solved_at} iterations in average, \n"
           f"Average number of fitness evaluations is {avg_fitness_evals}.\n")
     plt.plot(EA_records)
-    plt.title("The performance curve of LinearDecayMutationSolver")
+    plt.title("The performance curve of QuadraticDecayMutationFunc")
     plt.xlabel("Iteration")
     plt.ylabel(f"Average Best fitness of {n_tests} runs")
     plt.show()
 
 
 if __name__ == '__main__':
-    solver = LinearDecayMutationSolver(SIZE, population_size=4, init_mutation=3/15, mutation_decay=2/950/15,
-                                       min_mutation=1/15, n_iter=N_GENERATIONS)
+
+    def linearDecayMutationFunc(generation_num: int) -> float:
+        # solving takes 700 - 730 iterations, 99 out of 100 runs solved
+        return max((-1/1375) * generation_num + 0.6, 1/30)
+
+    def quadraticDecayMutationFunc(generation_num: int) -> float:
+        # solving takes 770 - 830 iterations, 98 out of 100 runs solved
+        return max(-6.54545454e-7 * generation_num**2 - 0.000447273 * generation_num + 0.8, 1/30)
+
+    solver = FunctionalMutationSolver(SIZE, population_size=4, mutation_func=linearDecayMutationFunc,
+                                      n_iter=N_GENERATIONS)
     solver.run(verbose=True)
 
-    init_mutation = 9/15
-    mutation_decay = 8/750/15
-    min_mutation = 1/30
-    experiment(LinearDecayMutationSolver, SIZE, 4, init_mutation, mutation_decay, min_mutation, N_GENERATIONS)
+    experiment(FunctionalMutationSolver, SIZE, 4, quadraticDecayMutationFunc, N_GENERATIONS)
 
 
 
