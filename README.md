@@ -13,3 +13,8 @@
 - Conatraints
     1. Algorithm should solve them problem with above 95% chance (find the actually maximum sum 95 time out of 100 runs)
     2. Solve the problem as late as possible, with 1000 generations
+
+## Progress
+![SimpleOneMaxSolver](sample_onemax_solver.png)
+![LinearDecayMutationSolver](linear_decay_mutation_solver.png)
+![QuadraticDecayMutationSolver](quadratic_decay_mutation_solver.png)
