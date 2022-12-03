@@ -102,7 +102,7 @@ def experiment(solver_class: Callable, *args, **kwargs):
           f"Problem is solved with {average_solved_at} iterations in average, \n"
           f"Average number of fitness evaluations is {avg_fitness_evals}.\n")
     plt.plot(EA_records)
-    plt.title("The performance curve of QuadraticDecayMutationFunc")
+    plt.title("The performance curve of PowerfulSolver")
     plt.xlabel("Iteration")
     plt.ylabel(f"Average Best fitness of {n_tests} runs")
     plt.show()
