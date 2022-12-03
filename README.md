@@ -29,12 +29,12 @@ This solver uses a decaying mutation rate, at the beginning, the mutation rate i
 ***
 ![LinearDecayMutationSolver](linear_decay_mutation_solver.png)
 
-### QuadraticDecayMutationSolver
-This solver pushes the efficient searching to even later generations, it makes the beginning event more unefficient, by using a quadratic function as mutation rate decay function. This should be better than LinearDecayMutationSolver, but extremely difficult to find a good set of parameters.
+### PowerfulSolver
+In previous solver, we learnt that we can actually make the EA almost do nothing by using insane parameters at the beginning, and the EA starts to search for correct results when parameters decreases to valid range. The point is that, if the EA searches too slow with good parameters, then we have to reserve enough generations for it to converge and find the optimal answer, if the EA is very powerful, then we can reserve fewer generations for it to find the optimal answer. In an extreme and ideal way, if the EA can find the best bitstring in single generation, then in the first 999 generations it is allowed to do nothing. So, in the end, we still need a strong EA.
 ***
-![QuadraticDecayMutationSolver](quadratic_decay_mutation_solver.png)
+![PowerfulSolver](powerful_solver.png)
 
 ### EA of EA
-When the design of EA gets complecated, it is difficult to find a set of good parameters, since parameters can have complex interactions, causing different effects to exploration and exploitation. It is an idea to use EA to find the parameters of another EA. Many EA with different parameters forms a population, operations like crossover, tournament selection, mutation are allowed to make child EA with new and better parameters. Fitness function is defined according to the problem objectives. For the final resulting population, every single EA is evaluated 10 times (it means try to solve problem 1000 times), the one with highest average fitness is selected as the final answer, index 19 in the plot below have a problem solve rate of 99% and solves the problem at 807 generation on average.
+When the design of EA gets complecated, it is difficult to find a set of good parameters, since parameters can have complex interactions, causing different effects to exploration and exploitation. It is an idea to use EA to find the parameters of another EA. Many EA with different parameters forms a population, operations like crossover, tournament selection, mutation are allowed to make child EA with new and better parameters. Fitness function is defined according to the problem objectives. For the final resulting population, every single EA is evaluated 10 times (it means try to solve problem 1000 times), the one with highest average fitness is selected as the final answer, index 3 in the plot below have a problem solve rate of 98.4% and solves the problem at 930 generation on average.
 ***
 ![PopulationFitness](EAofEA/PopulationFitness.png)
