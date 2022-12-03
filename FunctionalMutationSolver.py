@@ -24,10 +24,7 @@ class FunctionalMutationSolver:
         self.mutation_func = mutation_func
         self.n_iter = n_iter
         self.bitstring_len = bitstring_len
-        self.record = {
-            "best fitness": [],
-            "avg fitness": []
-        }
+        self.best_fitness_list = []
 
     def run(self, verbose: bool=False) -> Tuple[int, int]:
         """ Run the EA """
@@ -37,8 +34,7 @@ class FunctionalMutationSolver:
         for i in range(self.n_iter):
             # Find the best bitstring at this time
             best_bitstring = self.population.getBest()
-            self.record["best fitness"].append(best_bitstring.fitness)
-            self.record["avg fitness"].append(self.population.getAvgFitness())
+            self.best_fitness_list.append(best_bitstring.fitness)
             # print(f"Best fitness = {best_bitstring.fitness}")
             if best_bitstring.fitness > best_fitness_so_far:
                 best_fitness_so_far = best_bitstring.fitness
@@ -52,7 +48,6 @@ class FunctionalMutationSolver:
             for bs in self.population:
                 if not bs.isAllOnes():
                     bs.probabilisticMutation(mutation_rate)
-
 
         if verbose:
             best_bitstring = self.population.getBest()
@@ -74,7 +69,7 @@ def experiment(solver_class: Callable, *args, **kwargs):
         print(f"{i+1}/{n_tests}")
         solver = solver_class(*args, **kwargs)
         best_fitness, best_found_at = solver.run()
-        EA_records = [solver.record["best fitness"][i] + EA_records[i] for i in range(N_GENERATIONS)]
+        EA_records = [solver.best_fitness_list[i] + EA_records[i] for i in range(N_GENERATIONS)]
         if best_fitness == SIZE:
             n_solves += 1
             average_solved_at += best_found_at
@@ -107,7 +102,16 @@ if __name__ == '__main__':
                                       n_iter=N_GENERATIONS)
     solver.run(verbose=True)
 
-    experiment(FunctionalMutationSolver, SIZE, 4, quadraticDecayMutationFunc, N_GENERATIONS)
+    # experiment(FunctionalMutationSolver, SIZE, 4, quadraticDecayMutationFunc, N_GENERATIONS)
+
+    pop_size = 5
+    c0 = 0.6191933448286507
+    c1 = -0.0006379984949527008
+    c2 = -1.2635768176710518e-08
+    min_mutation = 0.03245960272199035
+    experiment(FunctionalMutationSolver, SIZE, pop_size,
+               lambda gen_idx: max(c2 * gen_idx ** 2 + c1 * gen_idx + c0, min_mutation),
+               N_GENERATIONS)
 
 
 
