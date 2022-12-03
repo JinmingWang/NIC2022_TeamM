@@ -14,6 +14,9 @@
     1. Algorithm should solve them problem with above 95% chance (find the actually maximum sum 95 time out of 100 runs)
     2. Solve the problem as late as possible, with 1000 generations
 
+## Meeting time
+- 2022 Nov 06 around 15:00 to 16:00
+
 ## Progress
 ### SimpleOneMaxSolver
 This solver is too powerful, the problem solve rate is 97%, solves the problem within 240 - 300 generations. It it because it learns too fast at the beginning, but this is the simplest design.
