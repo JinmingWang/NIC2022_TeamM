@@ -1,3 +1,5 @@
+import random
+
 from OneMaxObject import BitString, Population
 from typing import *
 import matplotlib.pyplot as plt
@@ -6,22 +8,29 @@ SIZE = 15   # size of the problem, the length of bitstring
 N_GENERATIONS = 1000    # number of generations
 
 """
-This solver takes more iterations to solve OneMax problem, and also solves it with greater probability
-After several tests, LinearMutationSolver(15, 4, 9/15, 8/750/15, 1/30, 1000)
-solves the problem in around 98 out of 100 runs, 
-with an average of 730 - 770 iterations
+This solver can take any function as the mutation decay function, the function takes generation number and returns
+mutation rate
 """
-class FunctionalMutationSolver:
-    def __init__(self, bitstring_len: int, population_size: int, mutation_func: Callable[[int], float], n_iter: int):
+class PowerfulSolver:
+    def __init__(self, bitstring_len: int,
+                 population_size: int,
+                 mutation_rate_func: Callable[[int], float],
+                 t_size: int,
+                 t_n_select: int,
+                 crossover_rate_func: Callable[[int], float],
+                 n_iter: int):
         """
         A very stupid, simple solver, does poorly on Worst OneMax Problem
         :param bitstring_len: how is the length for bitstring
         :param population_size: population size
-        :param mutation_func: a function that given generation number and returns mutation rate
+        :param mutation_rate_func: a function that given generation number and returns mutation rate
         :param n_iter: number of total iterations
         """
         self.population = Population(population_size, bitstring_len)
-        self.mutation_func = mutation_func
+        self.mutation_func = mutation_rate_func
+        self.t_size = t_size
+        self.t_n_select = t_n_select
+        self.crossover_rate_func = crossover_rate_func
         self.n_iter = n_iter
         self.bitstring_len = bitstring_len
         self.best_fitness_list = []
@@ -33,21 +42,32 @@ class FunctionalMutationSolver:
 
         for i in range(self.n_iter):
             # Find the best bitstring at this time
+            parents = self.population.tournamentSelect(self.t_size, self.t_n_select)
+            children = []
+            crossover_rate = self.crossover_rate_func(i)
+            for pi in range(len(parents)):
+                for pj in range(len(parents)):
+                    if random.random() < crossover_rate:
+                        children.append(BitString.randomMaskCrossover(parents[pi], parents[pj]))
+                    else:
+                        children.append(parents[pi].copy())
             best_bitstring = self.population.getBest()
+            children.append(best_bitstring.copy())
             self.best_fitness_list.append(best_bitstring.fitness)
-            # print(f"Best fitness = {best_bitstring.fitness}")
+
+            n_children = len(children)
+            mutation_rate = self.mutation_func(i)
+            for child in children:
+                child.probabilisticMutation(mutation_rate)
+            self.population.extend(children)
+
+            for _ in range(n_children):
+                self.population.pop(self.population.getArgWorst())
+
+            best_bitstring = self.population.getBest()
             if best_bitstring.fitness > best_fitness_so_far:
                 best_fitness_so_far = best_bitstring.fitness
                 best_answer_found_at = i
-
-            # Just take a bitstring in population, and use the best bitstring to replace them
-            self.population.pop()
-            self.population.insert(0, best_bitstring.copy())
-
-            mutation_rate = self.mutation_func(i)
-            for bs in self.population:
-                if not bs.isAllOnes():
-                    bs.probabilisticMutation(mutation_rate)
 
         if verbose:
             best_bitstring = self.population.getBest()
@@ -89,28 +109,18 @@ def experiment(solver_class: Callable, *args, **kwargs):
 
 
 if __name__ == '__main__':
-
-    def linearDecayMutationFunc(generation_num: int) -> float:
-        # solving takes 700 - 730 iterations, 99 out of 100 runs solved
-        return max((-1/1375) * generation_num + 0.6, 1/30)
-
-    def quadraticDecayMutationFunc(generation_num: int) -> float:
-        # solving takes 770 - 830 iterations, 98 out of 100 runs solved
-        return max(-6.54545454e-7 * generation_num**2 - 0.000447273 * generation_num + 0.8, 1/30)
-
-    solver = FunctionalMutationSolver(SIZE, population_size=4, mutation_func=linearDecayMutationFunc,
-                                      n_iter=N_GENERATIONS)
-    solver.run(verbose=True)
-
-    # experiment(FunctionalMutationSolver, SIZE, 4, quadraticDecayMutationFunc, N_GENERATIONS)
-
-    pop_size = 5
-    c0 = 0.6191933448286507
-    c1 = -0.0006379984949527008
-    c2 = -1.2635768176710518e-08
-    min_mutation = 0.03245960272199035
-    experiment(FunctionalMutationSolver, SIZE, pop_size,
-               lambda gen_idx: max(c2 * gen_idx ** 2 + c1 * gen_idx + c0, min_mutation),
+    pop_size = 10
+    init_m = 1.8127543060530658
+    slope_m = -0.0016558461699318148
+    t_size = 5
+    t_n_select = 2
+    init_c = 2.6194913922128302
+    slope_c = -0.00039274961188433814
+    min_mutation = 0.049647885507263775
+    experiment(PowerfulSolver, SIZE, pop_size,
+               lambda gen_idx: max(slope_m * gen_idx + init_m, min_mutation),
+               t_size, t_n_select,
+               lambda gen_idx: max(slope_c * gen_idx + init_c, min_mutation),
                N_GENERATIONS)
 
 

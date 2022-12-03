@@ -198,6 +198,9 @@ class Population(list):
         """ Get the worst bitstring in the population """
         return min(self, key=lambda bs: bs.fitness)
 
+    def getArgWorst(self) -> int:
+        return min(range(self.size), key = lambda i: self[i].fitness)
+
     def getAvgFitness(self) -> float:
         """ Get the average fitness of the entire population """
         return sum([bitstring.fitness for bitstring in self]) / self.size
@@ -209,6 +212,8 @@ class Population(list):
         :param n_select: how many elements selected finally
         :return: a list of elements selected from tournament
         """
+        if tournament_size > len(self):
+            tournament_size = len(self)
         selected = []
         for _ in range(n_select):
             group = random.sample(self, tournament_size)

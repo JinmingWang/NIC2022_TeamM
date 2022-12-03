@@ -2,7 +2,7 @@ from __future__ import annotations  # Requires Python 3.7+
 from typing import *
 import matplotlib.pyplot as plt
 from OneMaxObject import BitString, Population
-from FunctionalMutationSolver import FunctionalMutationSolver
+from PowerfulSolver import PowerfulSolver
 import random
 import pickle
 from multiprocessing import Pool
@@ -45,47 +45,57 @@ def onSubprocessError(err):
 
 class ParamCombination:
     def __init__(self):
-        self.pop_size = random.randint(1, 10)
-        self.c2 = getRandomBetween(-1e-6, -1e-7)
-        self.c1 = getRandomBetween(-0.001, -0.0001)
-        self.c0 = getRandomBetween(0.1, 1.0)
-        self.min_mutation = getRandomBetween(1/40, 1/10)
+        self.params = {
+            "pop_size": random.randint(1, 15),
+            "slope_m": getRandomBetween(-0.002, -0.00005),
+            "init_m": getRandomBetween(0.0, 10.0),
+            "slope_c": getRandomBetween(-0.002, -0.00005),
+            "init_c": getRandomBetween(0.0, 10.0),
+            "t_size": random.randint(1, 5),
+            "t_n_select": 2,
+            "min_mutation": getRandomBetween(1 / 40, 1 / 10)
+        }
+
         self.fitness = 9999
         self.avg_solved_at = 0
         self.n_solves = 0
 
+    def __getitem__(self, item):
+        return self.params[item]
+
+    def __setitem__(self, key, value):
+        self.params[key] = value
+
     def __str__(self):
-        string = f"{self.pop_size=} {self.c0=} {self.c1=} {self.c2=} {self.min_mutation=} {self.fitness=}" \
-                 f" {self.avg_solved_at=} {self.n_solves=}"
-        return string.replace("self.", "")
+        return str(self.params) + f"\n{self.fitness=} {self.avg_solved_at=} {self.n_solves=}".replace("self.", "")
 
     def mutate(self, mutation_factor: float) -> None:
 
         # It is not good to change population size a lot, because it has big influence on algorithm performance,
         # so change population size with low probability
-        popsize_mutate_num = random.random()
-        if popsize_mutate_num < 0.05:
-            self.pop_size = min(self.pop_size + 1, MAX_POP_SIZE)
-        elif popsize_mutate_num < 0.1:
-            self.pop_size = max(1, self.pop_size - 1)
+        if random.random() < 0.1:
+            self["pop_size"] += 1 if random.random() >= 0.5 else -1
 
-        # 50% percent chance to mutate c2
-        c2_mutation_num = random.random()
-        if c2_mutation_num < 0.7:
-            self.c2 = clip(getRandomBetween(-2e-8 * mutation_factor, 2e-8 * mutation_factor), -3e-5, 3e-5)
+        if random.random() < 0.7:
+            self["slope_m"] = self["slope_m"] + getRandomBetween(-1e-5 * mutation_factor, 1e-5 * mutation_factor)
 
-        # 50% percent chance to mutate c1
-        c1_mutation_num = random.random()
-        if c1_mutation_num < 0.7:
-            self.c1 = clip(self.c1 + getRandomBetween(-1e-5 * mutation_factor, 1e-5 * mutation_factor), -0.003, 0.003)
+        if random.random() < 0.7:
+            self["init_m"] = self["init_m"] + getRandomBetween(-0.01 * mutation_factor, 0.01 * mutation_factor)
 
-        c0_mutate_num = random.random()
-        if c0_mutate_num < 0.7:
-            self.c0 = clip(self.c0 + getRandomBetween(-0.01 * mutation_factor, 0.01 * mutation_factor), 0.1, 1.0)
+        if random.random() < 0.7:
+            self["slope_c"] = self["slope_c"] + getRandomBetween(-1e-5 * mutation_factor, 1e-5 * mutation_factor)
 
-        min_mutate_num = random.random()
-        if min_mutate_num < 0.7:
-            self.min_mutation = clip(self.min_mutation +
+        if random.random() < 0.7:
+            self["init_c"] = self["init_c"] + getRandomBetween(-0.01 * mutation_factor, 0.01 * mutation_factor)
+
+        if random.random() < 0.2:
+            self["t_size"] += 1 if random.random() >= 0.5 else -1
+
+        if random.random() < 0.2:
+            self["t_n_select"] += int(clip(1 if random.random() >= 0.5 else -1, 2, 4))
+
+        if random.random() < 0.7:
+            self["min_mutation"] = clip(self["min_mutation"] +
                                      getRandomBetween(-0.005 * mutation_factor, 0.005 * mutation_factor), 0, 1)
 
     def evaluate(self) -> None:
@@ -104,15 +114,18 @@ class ParamCombination:
         fitness_solve has a factor of 2, because solving the problem is more important than having good performance
         fitness_overall = 2 * fitness_solve + fitness_worst
         """
+
         self.n_solves = 0
         self.avg_solved_at = 0
 
-        mutation_func = lambda gen_idx: max(self.c2 * gen_idx ** 2 + self.c1 * gen_idx + self.c0, self.min_mutation)
+        mutation_rate_func = lambda gen_idx: max(self["slope_m"] * gen_idx + self["init_m"], self["min_mutation"])
+        crossover_rate_func = lambda gen_idx: max(self["slope_c"] * gen_idx + self["init_c"], self["min_mutation"])
 
         n_tests = 100
         for i in range(n_tests):
             BitString.n_fitness_evals = 0
-            solver = FunctionalMutationSolver(SIZE, self.pop_size, mutation_func, N_GENERATIONS)
+            solver = PowerfulSolver(SIZE, self["pop_size"], mutation_rate_func, self["t_size"], self["t_n_select"],
+                                    crossover_rate_func, N_GENERATIONS)
             best_fitness, best_found_at = solver.run()
             if best_fitness == SIZE:
                 self.n_solves += 1
@@ -130,28 +143,21 @@ class ParamCombination:
         if self.n_solves < 95:
             self.fitness /= 2
 
-
     def copy(self):
         new_param = ParamCombination()
-        new_param.pop_size = self.pop_size
-        new_param.c0 = self.c0
-        new_param.c1 = self.c1
-        new_param.c2 = self.c2
-        new_param.min_mutation = self.min_mutation
+        new_param.params = self.params
         new_param.fitness = self.fitness
         new_param.n_solves = self.n_solves
         new_param.avg_solved_at = self.avg_solved_at
         return new_param
 
     def toList(self):
-        return [self.pop_size, self.c0, self.c1, self.c2, self.min_mutation, self.fitness, self.n_solves,
-                self.avg_solved_at]
+        return [self.params, self.fitness, self.n_solves, self.avg_solved_at]
 
     @staticmethod
     def fromList(data_list: List):
         new_param = ParamCombination()
-        new_param.pop_size, new_param.c0, new_param.c1, new_param.c2, \
-        new_param.min_mutation, new_param.fitness, new_param.n_solves, new_param.avg_solved_at = data_list
+        new_param.params, new_param.fitness, new_param.n_solves, new_param.avg_solved_at = data_list
         return new_param
 
     @staticmethod
@@ -168,45 +174,23 @@ class ParamCombination:
         """
         new_param = ParamCombination()
 
-        choice = random.choice([0, 1, 2])
-        if choice == 0:
-            new_param.pop_size = param1.pop_size
-        elif choice == 1:
-            new_param.pop_size = (param1.pop_size + param2.pop_size) // 2
-        else:
-            new_param.pop_size = param2.pop_size
+        def selectOrMerge(p1, p2, key):
+            choice = random.choice([0, 1, 2])
+            if choice == 0:
+                return p1[key]
+            elif choice == 1:
+                return (p1[key] + p2[key]) / 2
+            else:
+                return p2[key]
 
-        choice = random.choice([0, 1, 2])
-        if choice == 0:
-            new_param.c0 = param1.c0
-        elif choice == 1:
-            new_param.c0 = (param1.c0 + param2.c0) / 2
-        else:
-            new_param.c0 = param2.c0
-
-        choice = random.choice([0, 1, 2])
-        if choice == 0:
-            new_param.c1 = param1.c1
-        elif choice == 1:
-            new_param.c1 = (param1.c1 + param2.c1) / 2
-        else:
-            new_param.c1 = param2.c1
-
-        choice = random.choice([0, 1, 2])
-        if choice == 0:
-            new_param.c2 = param1.c2
-        elif choice == 1:
-            new_param.c2 = (param1.c2 + param2.c2) / 2
-        else:
-            new_param.c2 = param2.c2
-
-        choice = random.choice([0, 1, 2])
-        if choice == 0:
-            new_param.min_mutation = param1.min_mutation
-        elif choice == 1:
-            new_param.min_mutation = (param1.min_mutation + param2.min_mutation) / 2
-        else:
-            new_param.min_mutation = param2.min_mutation
+        new_param["pop_size"] = int(selectOrMerge(param1, param2, "pop_size"))
+        new_param["init_m"] = selectOrMerge(param1, param2, "init_m")
+        new_param["slope_m"] = selectOrMerge(param1, param2, "slope_m")
+        new_param["init_c"] = selectOrMerge(param1, param2, "init_c")
+        new_param["slope_c"] = selectOrMerge(param1, param2, "slope_c")
+        new_param["t_size"] = int(selectOrMerge(param1, param2, "t_size"))
+        new_param["t_n_select"] = int(selectOrMerge(param1, param2, "t_n_select"))
+        new_param["min_mutation"] = selectOrMerge(param1, param2, "min_mutation")
 
         return new_param
 
@@ -313,6 +297,7 @@ class OneMaxSolverParamFinder:
                 self.population.pop(self.population.getArgWorst())
 
             self.reportBest()
+            self.save(f"EAEA_g{gi}.pkl")
 
     def reportBest(self):
         best_param_comb = self.population[self.population.getArgBest()]
@@ -381,17 +366,15 @@ class OneMaxSolverParamFinder:
 
 
 if __name__ == '__main__':
-    # param_finder = OneMaxSolverParamFinder(population_size=30,
-    #                                        tournament_size=3,
-    #                                        tournament_selections=3,
-    #                                        mutation_factor=1.5,
-    #                                        n_generations=100)
-    # param_finder.run()
-    # print("EA done")
-    # param_finder.reportBest()
-    # param_finder.save("EA.pkl")
+    param_finder = OneMaxSolverParamFinder(population_size=30,
+                                           tournament_size=2,
+                                           tournament_selections=3,
+                                           mutation_factor=2.0,
+                                           n_generations=100)
+    param_finder.run(n_processes=3)
+    print("EA done")
 
-    param_finder = OneMaxSolverParamFinder.load("EA_2022Dec13.pkl")
+    # param_finder = OneMaxSolverParamFinder.load("EA_2022Dec13.pkl")
     # param_finder.evaluatePopulation(5, 10)
 
     # For now, EA_2022Dec13.pkl report an average evaluation iteration of 807, solve rate of 99%
