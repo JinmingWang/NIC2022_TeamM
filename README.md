@@ -11,8 +11,9 @@
 - Introdution URL: https://www.sigevo.org/gecco-2007/competitions.html#c2
 - One-Max problem: Find the maximum sum of a length N bit string (a string consisting of only 1s and 0s)
 - Conatraints
-    1. Algorithm should solve them problem with above 95% chance (find the actually maximum sum 95 time out of 100 runs)
-    2. Solve the problem as late as possible, with 1000 generations
+    1. Algorithm should solve the problem with above 95% chance (find the optimal bitstring 95 times out of 100 runs)
+    2. Solve the problem as late as possible, within 1000 generations (for example, solves the problem in 100 generation is not good, solves it in 700 generations is good)
+    3. At most 10,0000 fitness evaluations can be made.
 
 ## Meeting time
 - 2022 Nov 06 around 15:00 to 16:00
