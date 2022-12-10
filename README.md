@@ -17,6 +17,7 @@
 
 ## Meeting time
 - 2022 Nov 06 around 15:00 to 16:00
+- 2022 Dec 10 around 15:00 to
 
 ## Progress
 ### SimpleOneMaxSolver
