@@ -5,7 +5,7 @@ from typing import *
 import matplotlib.pyplot as plt
 
 SIZE = 15   # size of the problem, the length of bitstring
-N_GENERATIONS = 1000    # number of generations
+N_GENERATIONS = 1100    # number of generations
 
 """
 This solver can take any function as the mutation decay function, the function takes generation number and returns
@@ -44,23 +44,29 @@ class PowerfulSolver:
             # Find the best bitstring at this time
             parents = self.population.tournamentSelect(self.t_size, self.t_n_select)
             children = []
+            # update crossover rate
             crossover_rate = self.crossover_rate_func(i)
+            # do crossover and produce children
             for pi in range(len(parents)):
-                for pj in range(len(parents)):
+                for pj in range(pi+1, len(parents)):
                     if random.random() < crossover_rate:
                         children.append(BitString.randomMaskCrossover(parents[pi], parents[pj]))
                     else:
                         children.append(parents[pi].copy())
+
+            # Add best bitstring in population to children
             best_bitstring = self.population.getBest()
             children.append(best_bitstring.copy())
             self.best_fitness_list.append(best_bitstring.fitness)
 
+            # mutate each child then add all children to population
             n_children = len(children)
             mutation_rate = self.mutation_func(i)
             for child in children:
                 child.probabilisticMutation(mutation_rate)
             self.population.extend(children)
 
+            # Remove the worst n_children items
             for _ in range(n_children):
                 self.population.pop(self.population.getArgWorst())
 
@@ -117,6 +123,7 @@ if __name__ == '__main__':
     init_c = 2.6194913922128302
     slope_c = -0.00039274961188433814
     min_mutation = 0.049647885507263775
+
     experiment(PowerfulSolver, SIZE, pop_size,
                lambda gen_idx: max(slope_m * gen_idx + init_m, min_mutation),
                t_size, t_n_select,

@@ -56,8 +56,10 @@ class LinearDecayMutationSolver:
             for bs in self.population:
                 if not bs.isAllOnes():
                     bs.probabilisticMutation(self.mutation_rate)
+
+            # Change mutation rate
             if self.mutation_rate - self.mutation_decay > self.min_mutation:
-                self.mutation_rate = self.mutation_rate - self.mutation_decay
+                self.mutation_rate -= self.mutation_decay
             else:
                 self.mutation_rate = self.min_mutation
 
@@ -101,12 +103,12 @@ def experiment(solver_class: Callable, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    solver = LinearDecayMutationSolver(SIZE, population_size=4, init_mutation=3/15, mutation_decay=2/950/15,
-                                       min_mutation=1/15, n_iter=N_GENERATIONS)
-    solver.run(verbose=True)
+    # solver = LinearDecayMutationSolver(SIZE, population_size=4, init_mutation=9/15, mutation_decay=8/750/15,
+    #                                    min_mutation=1/30, n_iter=N_GENERATIONS)
+    # solver.run(verbose=True)
 
     init_mutation = 9/15
-    mutation_decay = 8/750/15
+    mutation_decay = 8/15/750
     min_mutation = 1/30
     experiment(LinearDecayMutationSolver, SIZE, 4, init_mutation, mutation_decay, min_mutation, N_GENERATIONS)
 

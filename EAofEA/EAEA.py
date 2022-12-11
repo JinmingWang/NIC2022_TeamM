@@ -105,7 +105,7 @@ class ParamCombination:
         We have fitness_solve, it rewards high solving rate, because we should have a solve rate of > 95%
         We do not want it to increase even more, because increasing fitness_solve means decreasing fitness_worst
         So the maximum value for fitness_solve is 0.96
-        fitness_solve = min(0.96, n_solves / n_tests)
+        fitness_solve = 2 *  (n_solves / n_tests)
 
         We have fitness_worst, it rewards high average solution found generation
         fitness_worst = avg_solved_at / N_GENERATIONS
@@ -113,6 +113,9 @@ class ParamCombination:
         And we have fitness_overall, which is a weighted combine of both fitness functions
         fitness_solve has a factor of 2, because solving the problem is more important than having good performance
         fitness_overall = 2 * fitness_solve + fitness_worst
+
+        If n_solves < 95
+        Then the fitness if halfed
         """
 
         self.n_solves = 0
@@ -139,7 +142,7 @@ class ParamCombination:
         fitness_solve = self.n_solves / n_tests
         fitness_worst = self.avg_solved_at / N_GENERATIONS
         # 1% solve success rate == solves in 20 more generations
-        self.fitness = 2 * fitness_solve + fitness_worst
+        self.fitness = 2 * fitness_solve + fitness_worst    # 2 * 0.96 + 0.9
         if self.n_solves < 95:
             self.fitness /= 2
 

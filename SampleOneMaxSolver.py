@@ -105,7 +105,7 @@ def experiment(solver_class: Callable, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    solver = GreedyMutationSolver(SIZE, 4, 1, N_GENERATIONS)
+    solver = GreedyMutationSolver(bitstring_len=SIZE, population_size=4, n_mutation=1, n_iter=N_GENERATIONS)
     solver.run()
 
     experiment(GreedyMutationSolver, SIZE, 3, 1, N_GENERATIONS)
