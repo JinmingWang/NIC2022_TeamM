@@ -4,13 +4,15 @@ from OneMaxObject import BitString, Population
 from typing import *
 import matplotlib.pyplot as plt
 
-SIZE = 15   # size of the problem, the length of bitstring
-N_GENERATIONS = 1100    # number of generations
+SIZE = 15  # size of the problem, the length of bitstring
+N_GENERATIONS = 1100  # number of generations
 
 """
 This solver can take any function as the mutation decay function, the function takes generation number and returns
 mutation rate
 """
+
+
 class PowerfulSolver:
     def __init__(self, bitstring_len: int,
                  population_size: int,
@@ -35,7 +37,7 @@ class PowerfulSolver:
         self.bitstring_len = bitstring_len
         self.best_fitness_list = []
 
-    def run(self, verbose: bool=False) -> Tuple[int, int]:
+    def run(self, verbose: bool = False) -> Tuple[int, int]:
         """ Run the EA """
         best_answer_found_at = -1
         best_fitness_so_far = 0
@@ -48,7 +50,7 @@ class PowerfulSolver:
             crossover_rate = self.crossover_rate_func(i)
             # do crossover and produce children
             for pi in range(len(parents)):
-                for pj in range(pi+1, len(parents)):
+                for pj in range(pi + 1, len(parents)):
                     if random.random() < crossover_rate:
                         children.append(BitString.randomMaskCrossover(parents[pi], parents[pj]))
                     else:
@@ -83,7 +85,13 @@ class PowerfulSolver:
         return best_fitness_so_far, best_answer_found_at
 
 
-def experiment(solver_class: Callable, *args, **kwargs):
+def experiment(bitstring_len: int,
+               population_size: int,
+               mutation_rate_func: Callable[[int], float],
+               t_size: int,
+               t_n_select: int,
+               crossover_rate_func: Callable[[int], float],
+               n_iter: int):
     n_solves = 0
     average_solved_at = 0
     avg_fitness_evals = 0
@@ -92,8 +100,8 @@ def experiment(solver_class: Callable, *args, **kwargs):
     n_tests = 100
     for i in range(n_tests):
         BitString.n_fitness_evals = 0
-        print(f"{i+1}/{n_tests}")
-        solver = solver_class(*args, **kwargs)
+        print(f"{i + 1}/{n_tests}")
+        solver = PowerfulSolver(bitstring_len, population_size, mutation_rate_func, t_size, t_n_select, crossover_rate_func, n_iter)
         best_fitness, best_found_at = solver.run()
         EA_records = [solver.best_fitness_list[i] + EA_records[i] for i in range(N_GENERATIONS)]
         if best_fitness == SIZE:
@@ -124,12 +132,18 @@ if __name__ == '__main__':
     slope_c = -0.00039274961188433814
     min_mutation = 0.049647885507263775
 
-    experiment(PowerfulSolver, SIZE, pop_size,
-               lambda gen_idx: max(slope_m * gen_idx + init_m, min_mutation),
+
+    def crossover_rate_update_func(generation_num):
+        return max(slope_m * generation_num + init_m, min_mutation)
+
+
+    def mutation_rate_update_func(generation_num):
+        return max(slope_m * generation_num + init_m, min_mutation)
+
+
+    experiment(SIZE,
+               pop_size,
+               mutation_rate_update_func,
                t_size, t_n_select,
-               lambda gen_idx: max(slope_c * gen_idx + init_c, min_mutation),
+               crossover_rate_update_func,
                N_GENERATIONS)
-
-
-
-
