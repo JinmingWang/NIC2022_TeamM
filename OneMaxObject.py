@@ -218,3 +218,7 @@ def testPopulation():
     print(p.getAvgFitness())
     print(p.tournamentSelect(2, 2))
 
+if __name__ == '__main__':
+    testBitString()
+    testPopulation()
+

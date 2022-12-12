@@ -404,16 +404,12 @@ if __name__ == '__main__':
     plt.xlabel("Generation")
     plt.ylabel("Fitness")
     plt.show()
-    # print("EA done")
 
-    param_finder = OneMaxSolverParamFinder.load("EAEA_g30.pkl")
+    # Load and continue the algorithm
+    # param_finder = OneMaxSolverParamFinder.load("EAEA_g30.pkl")
     # param_finder.run(8)
-    # param_finder.population = param_finder.population[3:]
-    param_finder.evaluatePopulation(8, 8)
 
-    # param_finder.evaluatePopulation()
 
-    # For now, EA_2022Dec13.pkl report an average evaluation iteration of 930, solve rate of 98.4%
-    # for i in range(10):
-    #     param_finder.population[3].evaluate()
-    #     print(param_finder.population[3])
+    # param_finder = OneMaxSolverParamFinder.load("EAEA_g30.pkl")
+    # param_finder.evaluatePopulation(8, 8)
+
