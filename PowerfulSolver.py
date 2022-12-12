@@ -5,7 +5,7 @@ from typing import *
 import matplotlib.pyplot as plt
 
 SIZE = 15  # size of the problem, the length of bitstring
-N_GENERATIONS = 1100  # number of generations
+N_GENERATIONS = 1000  # number of generations
 
 """
 This solver can take any function as the mutation decay function, the function takes generation number and returns
@@ -43,7 +43,6 @@ class PowerfulSolver:
         best_answer_found_at = -1
         best_fitness_so_far = 0
         avg_of_population=[]
-
 
         for i in range(self.n_iter):
             # Find the best bitstring at this time

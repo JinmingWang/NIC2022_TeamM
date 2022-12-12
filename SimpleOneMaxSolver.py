@@ -163,7 +163,7 @@ if __name__ == '__main__':
         SimpleOneMaxSolver(bitstring_len=SIZE,
                            population_size=args.pop_size,
                            n_mutation=args.mutation,
-                           n_iter=N_GENERATIONS).run()
+                           n_iter=N_GENERATIONS).run(verbose=True)
     elif args.evaluate:
         experiment(SIZE, args.pop_size, args.mutation, N_GENERATIONS)
     elif args.search_param:
