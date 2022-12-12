@@ -14,7 +14,7 @@ This just shows a very simple EA to solve the problem
 After several tests, GreedyMutationSolver(15, 3, 1, 1000) solves the problem in around 97 out of 100 runs, 
 with an average of 240 - 300 iterations
 """
-class GreedyMutationSolver:
+class SimpleOneMaxSolver:
     def __init__(self, bitstring_len: int, population_size: int, n_mutation: int, n_iter: int):
         """
         A very stupid, simple solver, does poorly on Worst OneMax Problem
@@ -83,7 +83,7 @@ def experiment(*args, plot_and_print=True, **kwargs):
         BitString.n_fitness_evals = 0
         if plot_and_print:
             print(f"{i+1}/{n_tests}")
-        solver = GreedyMutationSolver(*args, **kwargs)
+        solver = SimpleOneMaxSolver(*args, **kwargs)
         best_fitness, best_found_at = solver.run()
         EA_records = [solver.record["best fitness"][i] + EA_records[i] for i in range(N_GENERATIONS)]
         # accumulate n_solves, and accumulate average_solved_at only the problem is solved
@@ -126,7 +126,7 @@ def parameterSearch1():
         for n_mutation in range(1, 15):
             print(f"Running {pop_size=}, {n_mutation=}")
             convergence_record, average_solved_at, avg_fitness_evals, n_solves = \
-                experiment(GreedyMutationSolver, SIZE, pop_size, n_mutation, N_GENERATIONS, plot_and_print=False)
+                experiment(SimpleOneMaxSolver, SIZE, pop_size, n_mutation, N_GENERATIONS, plot_and_print=False)
 
             # Do not even consider the once that are too bad
             if n_solves >= 95 and avg_fitness_evals < 100000:
@@ -160,10 +160,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.run_once:
-        GreedyMutationSolver(bitstring_len=SIZE,
-                             population_size=args.pop_size,
-                             n_mutation=args.mutation,
-                             n_iter=N_GENERATIONS).run()
+        SimpleOneMaxSolver(bitstring_len=SIZE,
+                           population_size=args.pop_size,
+                           n_mutation=args.mutation,
+                           n_iter=N_GENERATIONS).run()
     elif args.evaluate:
         experiment(SIZE, args.pop_size, args.mutation, N_GENERATIONS)
     elif args.search_param:
