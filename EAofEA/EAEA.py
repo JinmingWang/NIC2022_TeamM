@@ -46,14 +46,14 @@ def onSubprocessError(err):
 class ParamCombination:
     def __init__(self):
         self.params = {
-            "pop_size": random.randint(1, 15),
-            "slope_m": getRandomBetween(-0.002, -0.00005),
-            "init_m": getRandomBetween(0.0, 10.0),
-            "slope_c": getRandomBetween(-0.002, -0.00005),
-            "init_c": getRandomBetween(0.0, 10.0),
+            "pop_size": random.randint(3, 15),
+            "slope_m": getRandomBetween(-0.002, 0),
+            "init_m": getRandomBetween(0.0, 3.0),
+            "slope_c": getRandomBetween(-0.002, 0),
+            "init_c": getRandomBetween(0.0, 3.0),
             "t_size": random.randint(1, 5),
             "t_n_select": 2,
-            "min_mutation": getRandomBetween(1 / 40, 1 / 10)
+            "min_mutation": getRandomBetween(0, 0.1)
         }
 
         self.fitness = 9999
@@ -73,29 +73,28 @@ class ParamCombination:
 
         # It is not good to change population size a lot, because it has big influence on algorithm performance,
         # so change population size with low probability
-        if random.random() < 0.1:
+        if random.random() < 0.4:
             self["pop_size"] += 1 if random.random() >= 0.5 else -1
 
-        if random.random() < 0.7:
-            self["slope_m"] = self["slope_m"] + getRandomBetween(-1e-5 * mutation_factor, 1e-5 * mutation_factor)
+        self["slope_m"] = self["slope_m"] + getRandomBetween(-1e-5 * mutation_factor, 1e-5 * mutation_factor)
 
-        if random.random() < 0.7:
-            self["init_m"] = self["init_m"] + getRandomBetween(-0.01 * mutation_factor, 0.01 * mutation_factor)
+        self["init_m"] = self["init_m"] + getRandomBetween(-0.01 * mutation_factor, 0.01 * mutation_factor)
 
-        if random.random() < 0.7:
-            self["slope_c"] = self["slope_c"] + getRandomBetween(-1e-5 * mutation_factor, 1e-5 * mutation_factor)
+        self["slope_c"] = self["slope_c"] + getRandomBetween(-1e-5 * mutation_factor, 1e-5 * mutation_factor)
 
-        if random.random() < 0.7:
-            self["init_c"] = self["init_c"] + getRandomBetween(-0.01 * mutation_factor, 0.01 * mutation_factor)
+        self["init_c"] = self["init_c"] + getRandomBetween(-0.01 * mutation_factor, 0.01 * mutation_factor)
 
         if random.random() < 0.2:
-            self["t_size"] += 1 if random.random() >= 0.5 else -1
+            if random.random() >= 0.5:
+                self["t_size"] += 1
+            else:
+                self["t_size"] -= 1
+            self["t_size"] = clip(self["t_size"], 1, self["pop_size"]//2)
 
         if random.random() < 0.2:
             self["t_n_select"] += int(clip(1 if random.random() >= 0.5 else -1, 2, 4))
 
-        if random.random() < 0.7:
-            self["min_mutation"] = clip(self["min_mutation"] +
+        self["min_mutation"] = clip(self["min_mutation"] +
                                      getRandomBetween(-0.005 * mutation_factor, 0.005 * mutation_factor), 0, 1)
 
     def evaluate(self) -> None:
@@ -142,9 +141,11 @@ class ParamCombination:
         fitness_solve = self.n_solves / n_tests
         fitness_worst = self.avg_solved_at / N_GENERATIONS
         # 1% solve success rate == solves in 20 more generations
-        self.fitness = 2 * fitness_solve + fitness_worst    # 2 * 0.96 + 0.9
-        if self.n_solves < 95:
-            self.fitness /= 2
+        if fitness_solve >= 0.95:
+            weight = 2 - (1 - fitness_solve) * 20
+            self.fitness = 2 * fitness_solve + weight * fitness_worst
+        else:
+            self.fitness = 2 * fitness_solve + fitness_worst
 
     def copy(self):
         new_param = ParamCombination()
@@ -248,6 +249,7 @@ class OneMaxSolverParamFinder:
         self.t_selections = tournament_selections
         self.mutation_factor = mutation_factor
         self.n_generations = n_generations
+        self.history = []
 
     def run(self, n_processes: int = 4):
         """
@@ -304,6 +306,7 @@ class OneMaxSolverParamFinder:
 
     def reportBest(self):
         best_param_comb = self.population[self.population.getArgBest()]
+        self.history.append(best_param_comb.fitness)
         print("Best =", best_param_comb)
 
     def save(self, path: str):
@@ -334,6 +337,12 @@ class OneMaxSolverParamFinder:
 
 
     def evaluatePopulation(self, n_processes: int = 5, n_evals: int = 10):
+        """
+
+        :param n_processes: number of processes to use
+        :param n_evals: number of evaluations
+        :return:
+        """
         param_indices = []
         param_fitness = []
         for i in range(len(self.population)):
@@ -342,8 +351,10 @@ class OneMaxSolverParamFinder:
 
         idx = 0
         def onSubprocessFinish(results):
-            param_comb, idx = results
-            param_fitness[idx] = param_comb.fitness
+            param_comb, i = results
+            # print(f"Fitness of population[{i}] = {param_comb.fitness}")
+            # print(f"Population[{i}] = {param_comb}")
+            param_fitness[i] = param_comb.fitness
 
         for pi, param_comb in enumerate(self.population):
             print(f"Evaluating param_comb {pi+1}/{len(self.population)}")
@@ -355,32 +366,50 @@ class OneMaxSolverParamFinder:
             p.close()
             p.join()
 
-        plt.figure(1, figsize=(16, 9))
+        population_evals = []
         for i in range(0, n_evals * len(self.population), n_evals):
-            avg = sum(param_fitness[i: i+n_evals]) / n_evals
-            plt.scatter(param_indices[i: i+n_evals], param_fitness[i: i+n_evals], marker=f"${i//n_evals}$")
-            plt.text(i/n_evals, avg, f"{avg:.5f}")
+            param_comb_i = i//n_evals
+            # average fitness of this set of parameters
+            avg_fitness = sum(param_fitness[i: i+n_evals]) / n_evals
+            min_fitness = min(param_fitness[i: i+n_evals])
+            max_fitness = max(param_fitness[i: i+n_evals])
 
-        plt.title("Multiple Fitness Evaluations on Population")
-        plt.xlabel("ParamComb Index")
-        plt.ylabel("ParamComb Fitness")
-        plt.show()
+            population_evals.append((param_comb_i, avg_fitness, min_fitness, max_fitness, self.population[param_comb_i]))
+
+        # sort population according to fitness values, and print from the highest fitness one to the lowest fitness one
+        population_evals = sorted(population_evals, key=lambda item: item[1], reverse=True)
+        for item_eval in population_evals:
+            print(item_eval[0:4], end=": ")
+            print(item_eval[4])
+
+        #     plt.scatter(param_indices[i: i+n_evals], param_fitness[i: i+n_evals], marker=f"${param_comb_i}$")
+        #     plt.text(i/n_evals, avg_fitness, f"{avg_fitness:.5f}")
+        #
+        # plt.title("Multiple Fitness Evaluations on Population")
+        # plt.xlabel("ParamComb Index")
+        # plt.ylabel("ParamComb Fitness")
+        # plt.show()
 
 
 
 if __name__ == '__main__':
-    # param_finder = OneMaxSolverParamFinder(population_size=30,
-    #                                        tournament_size=2,
-    #                                        tournament_selections=3,
-    #                                        mutation_factor=2.0,
-    #                                        n_generations=30)
-    # param_finder.run(n_processes=3)
-    # print("EA done")
+    param_finder = OneMaxSolverParamFinder(population_size=10,
+                                           tournament_size=2,
+                                           tournament_selections=3,
+                                           mutation_factor=4.0,
+                                           n_generations=30)
+    param_finder.run(n_processes=8)
+    plt.plot(range(30), param_finder.history)
+    plt.title("Convergence Plot of EAofEA")
+    plt.xlabel("Generation")
+    plt.ylabel("Fitness")
+    plt.show()
 
-    param_finder = OneMaxSolverParamFinder.load("EAEA_g9.pkl")
-    # param_finder.evaluatePopulation(5, 10)
+    # Load and continue the algorithm
+    # param_finder = OneMaxSolverParamFinder.load("EAEA_g30.pkl")
+    # param_finder.run(8)
 
-    # For now, EA_2022Dec13.pkl report an average evaluation iteration of 930, solve rate of 98.4%
-    for i in range(10):
-        param_finder.population[3].evaluate()
-        print(param_finder.population[3])
+
+    # param_finder = OneMaxSolverParamFinder.load("EAEA_g30.pkl")
+    # param_finder.evaluatePopulation(8, 8)
+

@@ -1,6 +1,8 @@
 from OneMaxObject import BitString, Population
 from typing import *
 import matplotlib.pyplot as plt
+from sys import argv
+from argparse import ArgumentParser
 
 SIZE = 15   # size of the problem, the length of bitstring
 N_GENERATIONS = 1000    # number of generations
@@ -69,7 +71,7 @@ class GreedyMutationSolver:
         return best_fitness_so_far, best_answer_found_at
 
 
-def experiment(solver_class: Callable, *args, **kwargs):
+def experiment(*args, plot_and_print=True, **kwargs):
     n_solves = 0    # number of runs that the OneMax problem is solved
     average_solved_at = 0    # average number of generations the EA takes to solve EA
     avg_fitness_evals = 0   # average number of fitness evaluations the EA takes in 1000 generations
@@ -79,8 +81,9 @@ def experiment(solver_class: Callable, *args, **kwargs):
     n_tests = 100
     for i in range(n_tests):
         BitString.n_fitness_evals = 0
-        print(f"{i+1}/{n_tests}")
-        solver = solver_class(*args, **kwargs)
+        if plot_and_print:
+            print(f"{i+1}/{n_tests}")
+        solver = GreedyMutationSolver(*args, **kwargs)
         best_fitness, best_found_at = solver.run()
         EA_records = [solver.record["best fitness"][i] + EA_records[i] for i in range(N_GENERATIONS)]
         # accumulate n_solves, and accumulate average_solved_at only the problem is solved
@@ -91,24 +94,83 @@ def experiment(solver_class: Callable, *args, **kwargs):
         avg_fitness_evals += BitString.n_fitness_evals
 
     avg_fitness_evals /= n_tests
-    average_solved_at /= n_solves
+    if n_solves == 0:
+        average_solved_at = 1000
+    else:
+        average_solved_at /= n_solves
     EA_records = [rec / n_tests for rec in EA_records]
     print(f"OneMax problem solved {n_solves} out of {n_tests} runs, \n"
           f"Problem is solved with {average_solved_at} iterations in average, \n"
           f"Average number of fitness evaluations is {avg_fitness_evals}.\n")
 
-    plt.plot(EA_records)
+    if plot_and_print:
+        plt.plot(EA_records)
+        plt.title("The performance curve of SampleOneMaxSolver")
+        plt.xlabel("Iteration")
+        plt.ylabel(f"Average Best fitness of {n_tests} runs")
+        plt.show()
+
+    return EA_records, average_solved_at, avg_fitness_evals, n_solves
+
+
+def parameterSearch1():
+    """ Run parameter search, stage 1 """
+
+    # Only the data of top 10 best parameter combination is stored
+    convergence_records = []
+    labels = []
+    solve_generations = []
+
+    # Run iteration for population and num mutations in valid range
+    for pop_size in range(1, 20):
+        for n_mutation in range(1, 15):
+            print(f"Running {pop_size=}, {n_mutation=}")
+            convergence_record, average_solved_at, avg_fitness_evals, n_solves = \
+                experiment(GreedyMutationSolver, SIZE, pop_size, n_mutation, N_GENERATIONS, plot_and_print=False)
+
+            # Do not even consider the once that are too bad
+            if n_solves >= 95 and avg_fitness_evals < 100000:
+                convergence_records.append(convergence_record)
+                labels.append(f"p={pop_size}, m={n_mutation}")
+                solve_generations.append(average_solved_at)
+
+        # sort plots according to solve generation, get the best 10
+        indices_ranking = sorted(range(len(labels)), key=lambda i: solve_generations[i], reverse=True)
+        convergence_records = [convergence_records[i] for i in indices_ranking[:10]]
+        labels = [labels[i] for i in indices_ranking[:10]]
+        solve_generations = [solve_generations[i] for i in indices_ranking[:10]]
+
+    # plot the top-10
+    plots = [plt.plot(convergence_record)[0] for convergence_record in convergence_records]
+    plt.legend(plots, labels)
     plt.title("The performance curve of SampleOneMaxSolver")
     plt.xlabel("Iteration")
-    plt.ylabel(f"Average Best fitness of {n_tests} runs")
+    plt.ylabel(f"Average fitness of 100 runs")
     plt.show()
 
 
 if __name__ == '__main__':
-    solver = GreedyMutationSolver(bitstring_len=SIZE, population_size=4, n_mutation=1, n_iter=N_GENERATIONS)
-    solver.run()
+    parser = ArgumentParser()
+    parser.add_argument("-p", "--pop_size", default=4, type=int, help="The population size when run the algorithm")
+    parser.add_argument("-m", "--mutation", default=1, type=int, help="The mutation size when run the algorithm")
+    parser.add_argument("-r", "--run_once", help="Whether to run algorithm just once", action="store_true")
+    parser.add_argument("-e", "--evaluate", help="Whether to run the algorithm many time and evaluate", action="store_true")
+    parser.add_argument("-s", "--search_param", help="Whether to search for parameters", action="store_true")
 
-    experiment(GreedyMutationSolver, SIZE, 3, 1, N_GENERATIONS)
+    args = parser.parse_args()
+
+    if args.run_once:
+        GreedyMutationSolver(bitstring_len=SIZE,
+                             population_size=args.pop_size,
+                             n_mutation=args.mutation,
+                             n_iter=N_GENERATIONS).run()
+    elif args.evaluate:
+        experiment(SIZE, args.pop_size, args.mutation, N_GENERATIONS)
+    elif args.search_param:
+        parameterSearch1()
+    else:
+        print("Wrong parameters, you must run with one of [-r, -e, -s], now, run -e for default")
+        experiment(SIZE, args.pop_size, args.mutation, N_GENERATIONS)
 
 
 

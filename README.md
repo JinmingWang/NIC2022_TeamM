@@ -14,10 +14,30 @@
     1. Algorithm should solve the problem with above 95% chance (find the optimal bitstring 95 times out of 100 runs)
     2. Solve the problem as late as possible, within 1000 generations (for example, solves the problem in 100 generation is not good, solves it in 700 generations is good)
     3. At most 10,0000 fitness evaluations can be made.
+    4. Parameters can change during EA running, but only linearly.
+
+## How to Run
+- OneMaxObject.py
+  - When you run it, it does some testing to Population and Bitstring
+- SampleOneMaxSolver.py
+  - When you run it, it runs SampleOneMaxSolver once
+  - You can call experiment function, this will run SampleOneMaxSolver 100 times with given parameters, print and plot the results.
+- LinearDecayMutationSolver.py
+  - When you run it, it runs LinearDecayMutationSolver once
+  - Uncomment the function call to experiment will run the algorithm 100 times, then print and plot results
+  - Call paramSearch1 and paramSearch2 function will run a searching and evaluation to different parameter combinations
+  - Change file path inside findBestInRecord and call it will run an analysis on output of paramSearch, given top-k best parameter combinations
+- PowerfulSolver.py
+  - placeholder
+- EAofEA/EAEA.py
+  - When you run it with some given parameters, it will give start searching for parameter combinations for PowerfulSolver, and produce plot
+  - You can load from a saved checkpoint file and continue to run
+  - You can load from a saved checkpoint file and do multi-trial evaluation on each element of the current population
 
 ## Meeting time
 - 2022 Nov 06 around 15:00 to 16:00
-- 2022 Dec 10 around 15:00 to
+- 2022 Dec 10 after 15:00
+- 2022 Dec 11 after 14:30
 
 ## Progress
 ### SimpleOneMaxSolver
