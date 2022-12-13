@@ -126,9 +126,11 @@ class ParamCombination:
         n_tests = 100
         for i in range(n_tests):
             BitString.n_fitness_evals = 0
+            doMutatation=False
+            doCrossOver=True
             solver = PowerfulSolver(SIZE, self["pop_size"], mutation_rate_func, self["t_size"], self["t_n_select"],
-                                    crossover_rate_func, N_GENERATIONS)
-            best_fitness, best_found_at = solver.run()
+                                    crossover_rate_func, N_GENERATIONS,doMutatation,doCrossOver)
+            best_fitness, best_found_at,average_fitness = solver.run()
             if best_fitness == SIZE:
                 self.n_solves += 1
                 self.avg_solved_at += best_found_at
@@ -393,11 +395,12 @@ class OneMaxSolverParamFinder:
 
 
 if __name__ == '__main__':
-    param_finder = OneMaxSolverParamFinder(population_size=10,
-                                           tournament_size=2,
-                                           tournament_selections=3,
-                                           mutation_factor=4.0,
-                                           n_generations=30)
+    # param_finder = OneMaxSolverParamFinder(population_size=20,
+    #                                        tournament_size=2,
+    #                                        tournament_selections=3,
+    #                                        mutation_factor=4.0,
+    #                                        n_generations=30)
+    param_finder = OneMaxSolverParamFinder.load('EAEA_g0.pkl')
     param_finder.run(n_processes=8)
     plt.plot(range(30), param_finder.history)
     plt.title("Convergence Plot of EAofEA")

@@ -221,4 +221,5 @@ def testPopulation():
 if __name__ == '__main__':
     testBitString()
     testPopulation()
+    random.seed(9001)
 
