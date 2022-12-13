@@ -90,7 +90,9 @@ class PowerfulSolver:
 
 
         best_bitstring = self.population.getBest()
-        print(f"Final best bitstring = {best_bitstring}, fitness = {best_bitstring.fitness}, "
+        printResult=False #this has been added as EA uses the same code and runs multiple times causing alot of output!
+        if (printResult):
+            print(f"Final best bitstring = {best_bitstring}, fitness = {best_bitstring.fitness}, "
               f"found at iteration = {bestAnswerFoundAt}")
 
         return bestFitnessSoFar, bestAnswerFoundAt, avgOfPopulation
