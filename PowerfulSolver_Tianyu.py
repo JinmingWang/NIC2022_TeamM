@@ -141,8 +141,7 @@ def parameterFind1():
                 return max(slope_m * generation_num + init_m, min_mutation)
             for ts in [1, 3, 5]:
                 for tn in [2, 3]:
-                    ea_records, average_solved_at, avg_fitness_evals, n_solves = \
-                        experiment(SIZE, pop_size, m_func, ts, tn, c_func, N_GENERATIONS, plot_and_print=False)
+                    ea_records, average_solved_at, avg_fitness_evals, n_solves = experiment(SIZE, pop_size, m_func, ts, tn, c_func, N_GENERATIONS, plot_and_print=False)
 
                     if n_solves >= 95:
                         ea_records_list.append(ea_records)

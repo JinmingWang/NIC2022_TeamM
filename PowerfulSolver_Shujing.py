@@ -119,17 +119,9 @@ def experiment(bitstring_len, population_size, mutation_rate_func, t_size, t_n_s
     return EA_records, average_solved_at, avg_fitness_evals, n_solves
 
 
-def parameterFind2():
+def parameterFind():
     """
     It is possible that we can use slope_m for slope_c and also init_m for init_c
-    crossover_rate = slope_c * gen_n + init_c
-    mutation_rate = slope_m * gen_c + init_m
-
-    The key of finding applicable parameters for PowerfulSolver is to make reasonable assumptions, so that the number of
-    tunable parameters is reduced, so the number of loops is reduced, so the experiment code does not take very long
-    time to run. Other than the previous assumption, I designed another experiment to find parameters that based on the
-    assumption that parameter slope_c can be equal to slope_m, and the parameter init_c can be the equal to init_m.
-    Because both crossover and mutation have similar target
     """
     pop_size = 5
     init_m = 0.9
@@ -146,30 +138,29 @@ def parameterFind2():
     ea_records_list = []
     labels = []
     solve_gens = []
+
+    ea_data_list = []
     iteration = 0
 
-    for ts in [1, 2, 3, 4, 5]:
-        for tn in [1, 2, 3, 4]:
+    for ts in range(1, 6):
+        for tn in range(1, 5):
             ea_records, average_solved_at, avg_fitness_evals, n_solves = \
                 experiment(SIZE, pop_size, m_func, ts, tn, c_func, N_GENERATIONS, plot_and_print=False)
 
-            if n_solves >= 95:
-                ea_records_list.append(ea_records)
-                labels.append(f"init_c={init_c}, slope_c={slope_c}, ts={ts}, tn={tn}")
-                solve_gens.append(average_solved_at)
+            if n_solves > 94:
+                ea_data_list.append(
+                    (ea_records, f"init_c={init_c}, slope_c={slope_c}, ts={ts}, tn={tn}", average_solved_at)
+                )
             iteration += 1
             print(f"{iteration}/20")
 
-        indices_rank = sorted(range(len(labels)), key=lambda i: solve_gens[i])
-        ea_records_list = [ea_records_list[i] for i in indices_rank[-10:]]
-        labels = [labels[i] for i in indices_rank[-10:]]
-        solve_gens = [solve_gens[i] for i in indices_rank[-10:]]
+    ea_data_list.sort(key=lambda ea_data: ea_data[2])
 
-    plots = [plt.plot(ea_records)[0] for ea_records in ea_records_list]
-    plt.legend(plots, labels)
-    plt.title("The performance curve of PowerfulSolver")
-    plt.xlabel("Generation")
-    plt.ylabel(f"Average fitness")
+    plots = [plt.plot(ea_data[0])[0] for ea_data in ea_data_list]
+    plt.legend(plots, [ea_data[1] for ea_data in ea_data_list])
+    plt.title("Convergence Plots")
+    plt.xlabel("Generations")
+    plt.ylabel(f"Fitness")
     plt.show()
 
 
