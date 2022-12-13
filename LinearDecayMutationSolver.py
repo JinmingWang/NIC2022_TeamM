@@ -5,27 +5,21 @@ import matplotlib.pyplot as plt
 SIZE = 15   # size of the problem, the length of bitstring
 N_GENERATIONS = 1000    # number of generations
 
-"""
-This solver takes more iterations to solve OneMax problem, and also solves it with greater probability
-After several tests, LinearMutationSolver(15, 4, 9/15, 8/750/15, 1/30, 1000)
-solves the problem in around 98 out of 100 runs, 
-with an average of 730 - 770 iterations
-"""
 class LinearDecayMutationSolver:
-    def __init__(self, bitstring_len, population_size, init_mutation, mutation_decay, min_mutation, n_iter):
+    def __init__(self, bitstring_len, population_size, init_mutation, mutation_decay, min_mutation, n_gens):
         # initialize population according to population size and bitstring length
-        self.population = Population(population_size, bitstring_len)
+        self.pop = Population(population_size, bitstring_len)
         # set mutation rate to the initial mutation
-        self.mutation_rate = init_mutation
+        self.mut_rate = init_mutation
         # y = kx + b
         # mutation_rate = mutation_decay * generation_number + init_mutation
-        self.mutation_decay = mutation_decay
+        self.mut_slope = mutation_decay
         # when mutation_rate <= min_mutation, does not decrease mutation anymore
         self.min_mutation = min_mutation
         # number of total generations
-        self.n_iter = n_iter
+        self.n_gens = n_gens
         # length of bitstring, should be 15
-        self.bitstring_len = bitstring_len
+        self.bs_len = bitstring_len
         # used to store running statistics
         self.record = {
             "best fitness": [],
@@ -33,50 +27,50 @@ class LinearDecayMutationSolver:
         }
 
     def run(self, print_result=False):
-        best_answer_found_at = -1
-        best_fitness_so_far = 0
+        best_found_gen = -1
+        best_fitness = 0
 
-        for i in range(self.n_iter):
+        for i in range(self.n_gens):
             # Find the best bitstring at this time
-            best_bitstring = self.population.getBest()
+            best_bs = self.pop.getBest()
             # store the best fitness in the population
-            self.record["best fitness"].append(best_bitstring.fitness)
+            self.record["best fitness"].append(best_bs.fitness)
             # store the average fitness of whole population
-            self.record["avg fitness"].append(self.population.getAvgFitness())
+            self.record["avg fitness"].append(self.pop.getAvgFitness())
 
             # keep track the best bitstring ever found
-            if best_bitstring.fitness > best_fitness_so_far:
-                best_fitness_so_far = best_bitstring.fitness
-                best_answer_found_at = i
+            if best_bs.fitness > best_fitness:
+                best_fitness = best_bs.fitness
+                best_found_gen = i
 
             # Just remove the last bitstring in population, and insert a copy of the best bitstring at beginning
-            self.population.pop()
-            self.population.insert(0, best_bitstring.copy())
+            self.pop.pop()
+            self.pop.insert(0, best_bs.copy())
 
             # mutate every bitstring that is non-optimal
-            for bs in self.population:
+            for bs in self.pop:
                 if not bs.isAllOnes():
-                    bs.probabilisticMutation(self.mutation_rate)
+                    bs.probabilisticMutation(self.mut_rate)
 
             # update mutation rate
-            if self.mutation_rate - self.mutation_decay > self.min_mutation:
-                self.mutation_rate = self.mutation_rate - self.mutation_decay
+            if self.mut_rate - self.mut_slope > self.min_mutation:
+                self.mut_rate = self.mut_rate - self.mut_slope
             else:
-                self.mutation_rate = self.min_mutation
+                self.mut_rate = self.min_mutation
 
         if print_result:
-            best_bitstring = self.population.getBest()
-            print(f"Final best bitstring = {best_bitstring}, fitness = {best_bitstring.fitness}, "
-                  f"found at iteration = {best_answer_found_at}")
+            best_bs = self.pop.getBest()
+            print(f"Final best bitstring = {best_bs}, fitness = {best_bs.fitness}, "
+                  f"found at iteration = {best_found_gen}")
 
-        return best_fitness_so_far, best_answer_found_at
+        return best_fitness, best_found_gen
 
 
-def experiment(bitstring_len, population_size, init_mutation, mutation_decay, min_mutation, n_iter):
+def experiment(bitstring_len, population_size, init_mutation, mutation_decay, min_mutation, n_iter, plot=False):
     # how many times do we solve the problem
     n_solves = 0
     # on average, in what generation is the problem solved, larger is better, our target it to make it larger
-    average_solved_at = 0
+    average_solved_gen = 0
     # on average, how many times id the fitness evaluated
     avg_fitness_evals = 0
     # records of the algorithm, the i-th element is the average best fitness over all runs in i-th generation
@@ -90,7 +84,7 @@ def experiment(bitstring_len, population_size, init_mutation, mutation_decay, mi
         # print(i+1, "/", n_tests) # process bar
         # initialize algorithm and run it once
         solver = LinearDecayMutationSolver(bitstring_len, population_size, init_mutation, mutation_decay, min_mutation, n_iter)
-        best_fitness, best_found_at = solver.run()
+        best_fitness, best_found_gen = solver.run()
 
         # accumulate fitness for every generation
         for i in range(N_GENERATIONS):
@@ -100,24 +94,26 @@ def experiment(bitstring_len, population_size, init_mutation, mutation_decay, mi
         if best_fitness == SIZE:
             n_solves += 1
             # accumulate average solve generation
-            average_solved_at += best_found_at
+            average_solved_gen += best_found_gen
         # accumulate average fitness evaluations
         avg_fitness_evals += BitString.n_fitness_evals
 
     # get averages
     avg_fitness_evals /= n_tests
-    average_solved_at /= n_solves
+    average_solved_gen /= n_solves
     for rec in EA_records:
         rec /= n_tests
 
     print(f"OneMax problem solved {n_solves} out of {n_tests} runs, \n"
-          f"Problem is solved with {average_solved_at} iterations in average, \n"
+          f"Problem is solved with {average_solved_gen} iterations in average, \n"
           f"Average number of fitness evaluations is {avg_fitness_evals}.\n")
-    # plt.plot(EA_records)
-    # plt.title("The performance curve of LinearDecayMutationSolver")
-    # plt.xlabel("Iteration")
-    # plt.ylabel(f"Average Best fitness of {n_tests} runs")
-    # plt.show()
+
+    if plot:
+        plt.plot(EA_records)
+        plt.title("The performance curve of LinearDecayMutationSolver")
+        plt.xlabel("Iteration")
+        plt.ylabel(f"Average Best fitness of {n_tests} runs")
+        plt.show()
 
 
 def findBestInRecord():
@@ -174,7 +170,7 @@ def paramSearch2():
 
 if __name__ == '__main__':
     solver = LinearDecayMutationSolver(SIZE, population_size=4, init_mutation=3/15, mutation_decay=2/950/15,
-                                       min_mutation=1/15, n_iter=N_GENERATIONS)
+                                       min_mutation=1/15, n_gens=N_GENERATIONS)
     solver.run(print_result=True)
 
 

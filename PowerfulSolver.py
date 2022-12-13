@@ -36,7 +36,6 @@ class PowerfulSolver:
         best_fitness_so_far = 0
         avg_of_population=[]
 
-
         for i in range(self.n_iter):
             # Find the best bitstring at this time
             parents = self.population.tournamentSelect(self.t_size, self.t_n_select)
