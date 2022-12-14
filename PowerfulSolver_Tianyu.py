@@ -14,78 +14,77 @@ mutation rate
 
 
 class PowerfulSolver:
-    def __init__(self, bitstring_len: int,
-                 population_size: int,
-                 mutation_rate_func: Callable[[int], float],
-                 t_size: int,
-                 t_n_select: int,
-                 crossover_rate_func: Callable[[int], float],
-                 n_iter: int):
-        """
-        A very stupid, simple solver, does poorly on Worst OneMax Problem
-        :param bitstring_len: how is the length for bitstring
-        :param population_size: population size
-        :param mutation_rate_func: a function that given generation number and returns mutation rate
-        :param n_iter: number of total iterations
-        """
+    def __init__(self, bitstring_len,population_size,mutation_rate_func,t_size,t_n_select,crossover_rate_func,n_iter):
+        '''
+        The idea behind this algorithm was to create a method to use linear degradation across
+        mutation and crossover
+        '''
+        #initialize the paramaters
         self.population = Population(population_size, bitstring_len)
-        self.mutation_func = mutation_rate_func
         self.t_size = t_size
         self.t_n_select = t_n_select
-        self.crossover_rate_func = crossover_rate_func
         self.n_iter = n_iter
         self.bitstring_len = bitstring_len
         self.best_fitness_list = []
+        self.mutation_func = mutation_rate_func
+        self.crossover_rate_func = crossover_rate_func
 
-    def run(self, verbose: bool = False) -> Tuple[int, int]:
+    def run(self):
         """ Run the EA """
-        best_answer_found_at = -1
-        best_fitness_so_far = 0
+        bestAnswerFoundAt = 0 #where is the best answer found
+        bestFitnesSoFar = 0 #keep tab of the best fitness so far
+        avgOfPopulation=[]
+        doCrossOver=True #should it do crossover
+        doMutatation=True #should it do mutation
 
-        for i in range(self.n_iter):
+
+        for i in range(self.n_iter): #run the code 100 times
             # Find the best bitstring at this time
-            parents = self.population.tournamentSelect(self.t_size, self.t_n_select)
-            children = []
+            parents = self.population.tournamentSelect(self.t_size, self.t_n_select) #run tournament selection
+            children = [] #array is used to store children
             # update crossover rate
-            crossover_rate = self.crossover_rate_func(i)
-            # do crossover and produce children
-            for pi in range(len(parents)):
-                for pj in range(pi + 1, len(parents)):
-                    if random.random() < crossover_rate:
-                        children.append(BitString.randomMaskCrossover(parents[pi], parents[pj]))
-                    else:
-                        children.append(parents[pi].copy())
+            if(doCrossOver): #either do crossover
+                crossover_rate = self.crossover_rate_func(i) #
+                # do crossover and produce children
+                for indexOfParent1 in range(len(parents)):
+                    for indexOfParent2 in range(indexOfParent1 + 1, len(parents)): #this is done to ensure the same parent is not selected again
+                        if random.random() < crossover_rate: #if the number is less than crossover, basically satisfies the condition
+                            children.append(BitString.randomMaskCrossover(parents[indexOfParent1], parents[indexOfParent2]))  #then do the crossover
+                        else:
+                            children.append(parents[indexOfParent1].copy()) #otherwise just take parent1's bits
 
-            # Add best bitstring in population to children
-            best_bitstring = self.population.getBest()
-            children.append(best_bitstring.copy())
-            self.best_fitness_list.append(best_bitstring.fitness)
+                # Add best bitstring in population to children
+                bestBitString = self.population.getBest() #get the current best bitstring in the population
+                # children.append(bestBitString.copy()) #add this to the children
+            else: #do not do crossover just copy parents to children
+                bestBitString = self.population.getBest()
+                children=parents.copy()
 
-            # mutate each child then add all children to population
-            n_children = len(children)
-            mutation_rate = self.mutation_func(i)
-            for child in children:
-                child.probabilisticMutation(mutation_rate)
-            self.population.extend(children)
-
-            # Remove the worst n_children items
-            for _ in range(n_children):
-                self.population.pop(self.population.getArgWorst())
-
-            best_bitstring = self.population.getBest()
-            if best_bitstring.fitness > best_fitness_so_far:
-                best_fitness_so_far = best_bitstring.fitness
-                best_answer_found_at = i
-
-        if verbose:
-            best_bitstring = self.population.getBest()
-            print(f"Final best bitstring = {best_bitstring}, fitness = {best_bitstring.fitness}, "
-                  f"found at iteration = {best_answer_found_at}")
-
-        return best_fitness_so_far, best_answer_found_at
+            if(doMutatation):
+                # mutate each child then add all children to population
+                mutation_rate = self.mutation_func(i)
+                for child in children:
+                    child.probabilisticMutation(mutation_rate)
 
 
-def experiment(bitstring_len, population_size, mutation_rate_func, t_size, t_n_select, crossover_rate_func, n_iter, plot_and_print=True):
+            self.population.extend(children) #add children to the population
+
+            numberOfChildren = len(children) #we need to replace equal to the number of children
+            # Remove the worst numberOfChildren items
+            for j in range(numberOfChildren):
+                self.population.pop(self.population.getArgWorst())  #remove the worst elements from population
+
+            bestBitString = self.population.getBest()
+            if bestBitString.fitness > bestFitnesSoFar: #this is for printing the best value
+                bestFitnesSoFar = bestBitString.fitness #note down the best fitness, this is used later to count how many times we satisfied the count criteria
+                bestAnswerFoundAt = i
+            self.best_fitness_list.append(bestBitString.fitness)  # list of best fitness, this is used for plotting, nothing else!
+            avgOfPopulation.append(self.population.getAvgFitness())  # average is stored, this is also for graphs only!
+
+        return bestFitnesSoFar, bestAnswerFoundAt, avgOfPopulation
+
+
+def experiment(bitstring_len, population_size, mutation_rate_func, t_size, t_n_select, crossover_rate_func, n_iter):
     n_solves = 0
     average_solved_at = 0
     avg_fitness_evals = 0
@@ -94,10 +93,8 @@ def experiment(bitstring_len, population_size, mutation_rate_func, t_size, t_n_s
     n_tests = 100
     for i in range(n_tests):
         BitString.n_fitness_evals = 0
-        if plot_and_print:
-            print(f"{i + 1}/{n_tests}")
         solver = PowerfulSolver(bitstring_len, population_size, mutation_rate_func, t_size, t_n_select, crossover_rate_func, n_iter)
-        best_fitness, best_found_at = solver.run()
+        best_fitness, best_found_at, average_of_pop = solver.run()
         EA_records = [solver.best_fitness_list[i] + EA_records[i] for i in range(N_GENERATIONS)]
         if best_fitness == SIZE:
             n_solves += 1
@@ -107,15 +104,6 @@ def experiment(bitstring_len, population_size, mutation_rate_func, t_size, t_n_s
     avg_fitness_evals /= n_tests
     average_solved_at /= n_solves
     EA_records = [rec / n_tests for rec in EA_records]
-    if plot_and_print:
-        print(f"OneMax problem solved {n_solves} out of {n_tests} runs, \n"
-              f"Problem is solved with {average_solved_at} iterations in average, \n"
-              f"Average number of fitness evaluations is {avg_fitness_evals}.\n")
-        plt.plot(EA_records)
-        plt.title("The performance curve of PowerfulSolver")
-        plt.xlabel("Iteration")
-        plt.ylabel(f"Average Best fitness of {n_tests} runs")
-        plt.show()
     return EA_records, average_solved_at, avg_fitness_evals, n_solves
 
 
@@ -138,7 +126,7 @@ def parameterFind1():
     for init_c in [-2, 1, 0, 1, 2]:
         for slope_c in [-0.002, -0.001, 0.001, 0.002]:
             def c_func(generation_num):
-                return max(slope_m * generation_num + init_m, min_mutation)
+                return slope_c * generation_num + init_c
             for ts in [1, 3, 5]:
                 for tn in [2, 3]:
                     ea_records, average_solved_at, avg_fitness_evals, n_solves = experiment(SIZE, pop_size, m_func, ts, tn, c_func, N_GENERATIONS, plot_and_print=False)
@@ -184,9 +172,9 @@ def parameterFind2():
     for init_c in [-2, -1.5, 1, 0.5, 0, 0.5, 1, 1.5, 2]:    # 9
         for slope_c in [-0.0025, -0.002, -0.0015, -0.001, -0.0005, 0.0005, 0.001, 0.0015, 0.002, 0.0025]:
             def c_func(generation_num):
-                return max(slope_m * generation_num + init_m, min_mutation)
+                return slope_c * generation_num + init_c
             ea_records, average_solved_at, avg_fitness_evals, n_solves = \
-                experiment(SIZE, pop_size, m_func, ts, tn, c_func, N_GENERATIONS, plot_and_print=False)
+                experiment(SIZE, pop_size, m_func, ts, tn, c_func, N_GENERATIONS)
 
             if n_solves >= 95:
                 ea_records_list.append(ea_records)
@@ -209,29 +197,6 @@ def parameterFind2():
 
 
 if __name__ == '__main__':
-    pop_size = 15
-    init_m = 1.8127543060530658
-    slope_m = -0.0016558461699318148
-    min_mutation = 0.049647885507263775
-
-    t_size = 5
-    t_n_select = 2
-    init_c = 2.6194913922128302
-    slope_c = -0.00039274961188433814
-
-    # def crossover_rate_update_func(generation_num):
-    #     return max(slope_c * generation_num + init_c, min_mutation)
-    #
-    #
-    # def mutation_rate_update_func(generation_num):
-    #     return max(slope_m * generation_num + init_m, min_mutation)
-    #
-    #
-    # experiment(SIZE,
-    #            pop_size,
-    #            mutation_rate_update_func,
-    #            t_size, t_n_select,
-    #            crossover_rate_update_func,
-    #            N_GENERATIONS)
-
+    parameterFind1()
     parameterFind2()
+

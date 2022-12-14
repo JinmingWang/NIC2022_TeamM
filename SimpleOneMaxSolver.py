@@ -1,7 +1,6 @@
 from OneMaxObject import BitString, Population
 from typing import *
 import matplotlib.pyplot as plt
-from sys import argv
 from argparse import ArgumentParser
 
 SIZE = 15   # size of the problem, the length of bitstring
@@ -125,8 +124,13 @@ def parameterSearch1():
     for pop_size in range(1, 20):
         for n_mutation in range(1, 15):
             print(f"Running {pop_size=}, {n_mutation=}")
-            convergence_record, average_solved_at, avg_fitness_evals, n_solves = \
-                experiment(SimpleOneMaxSolver, SIZE, pop_size, n_mutation, N_GENERATIONS, plot_and_print=False)
+            convergence_record, average_solved_at, avg_fitness_evals, n_solves = experiment(
+                SimpleOneMaxSolver,
+                SIZE,
+                pop_size,
+                n_mutation,
+                N_GENERATIONS,
+                plot_and_print=False)
 
             # Do not even consider the once that are too bad
             if n_solves >= 95 and avg_fitness_evals < 100000:

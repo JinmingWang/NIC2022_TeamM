@@ -1,11 +1,12 @@
 from __future__ import annotations  # Requires Python 3.7+
 from typing import *
 import matplotlib.pyplot as plt
-from OneMaxObject import BitString, Population
+from OneMaxObject import BitString
 from PowerfulSolver import PowerfulSolver
 import random
 import pickle
 from multiprocessing import Pool
+from argparse import ArgumentParser
 
 MAX_POP_SIZE = 20
 SIZE = 15   # size of the problem, the length of bitstring
@@ -47,10 +48,10 @@ class ParamCombination:
     def __init__(self):
         self.params = {
             "pop_size": random.randint(3, 15),
-            "slope_m": getRandomBetween(-0.002, 0),
-            "init_m": getRandomBetween(0.0, 3.0),
-            "slope_c": getRandomBetween(-0.002, 0),
-            "init_c": getRandomBetween(0.0, 3.0),
+            "slope_m": getRandomBetween(-0.002, 0.002),
+            "init_m": getRandomBetween(2.0, 2.0),
+            "slope_c": getRandomBetween(-0.002, 0.002),
+            "init_c": getRandomBetween(-2.0, 2.0),
             "t_size": random.randint(1, 5),
             "t_n_select": 2,
             "min_mutation": getRandomBetween(0, 0.1)
@@ -121,7 +122,7 @@ class ParamCombination:
         self.avg_solved_at = 0
 
         mutation_rate_func = lambda gen_idx: max(self["slope_m"] * gen_idx + self["init_m"], self["min_mutation"])
-        crossover_rate_func = lambda gen_idx: max(self["slope_c"] * gen_idx + self["init_c"], self["min_mutation"])
+        crossover_rate_func = lambda gen_idx: self["slope_c"] * gen_idx + self["init_c"]
 
         n_tests = 100
         for i in range(n_tests):
@@ -156,10 +157,15 @@ class ParamCombination:
         return new_param
 
     def toList(self):
+        """ Convert self to list for better pickle saving """
         return [self.params, self.fitness, self.n_solves, self.avg_solved_at]
 
     @staticmethod
-    def fromList(data_list: List):
+    def fromList(data_list: List) -> ParamCombination:
+        """
+        Load data from a list
+        :param data_list: the list containing all necessary data
+        """
         new_param = ParamCombination()
         new_param.params, new_param.fitness, new_param.n_solves, new_param.avg_solved_at = data_list
         return new_param
@@ -201,7 +207,13 @@ class ParamCombination:
 
 class CombinationPopulation(list):
     def __init__(self, population_size: int):
+        """
+        This is just the Population of ParamCombination
+        """
         super(CombinationPopulation, self).__init__()
+
+        # Here run a multiprocessing population initialization
+        # because when ParamCombination is initialized, they have to be evaluated, evaluation takes time
         p = Pool(5)
         for i in range(population_size):
             self.append(ParamCombination())
@@ -338,7 +350,7 @@ class OneMaxSolverParamFinder:
 
     def evaluatePopulation(self, n_processes: int = 5, n_evals: int = 10):
         """
-
+        Evaluate each ParamCombination in the population multiple times
         :param n_processes: number of processes to use
         :param n_evals: number of evaluations
         :return:
@@ -391,25 +403,42 @@ class OneMaxSolverParamFinder:
         # plt.show()
 
 
-
 if __name__ == '__main__':
-    param_finder = OneMaxSolverParamFinder(population_size=10,
-                                           tournament_size=2,
-                                           tournament_selections=3,
-                                           mutation_factor=4.0,
-                                           n_generations=30)
-    param_finder.run(n_processes=8)
-    plt.plot(range(30), param_finder.history)
-    plt.title("Convergence Plot of EAofEA")
-    plt.xlabel("Generation")
-    plt.ylabel("Fitness")
-    plt.show()
+    parser = ArgumentParser()
+    parser.add_argument("--pop_size", default=1, type=int, help="The population size when run the algorithm")
+    parser.add_argument("--t_size", default=2, type=int, help="tournament size")
+    parser.add_argument("--t_select", default=3, type=int, help="number of parent selected")
+    parser.add_argument("--mutation_factor", default=10.0, type=float, help="the magnitude of mutation")
+    parser.add_argument("--generations", default=30, type=int, help="number of generations to run")
+    parser.add_argument("--load_file", default="", type=str, help="if to load a saved checkpoint, what is the path")
+    parser.add_argument("--processes", default=8, type=int, help="number of processes to run the code")
+    parser.add_argument("--n_trials", default=8, type=int, help="number of trials to evaluate each parameter combination when evaluating")
 
-    # Load and continue the algorithm
-    # param_finder = OneMaxSolverParamFinder.load("EAEA_g30.pkl")
-    # param_finder.run(8)
+    parser.add_argument("-r", "--run", help="To run EAofEA", action="store_true")
+    parser.add_argument("-e", "--evaluate", help="Whether evaluate the population of EAofEA",
+                        action="store_true")
+
+    args = parser.parse_args()
 
 
-    # param_finder = OneMaxSolverParamFinder.load("EAEA_g30.pkl")
-    # param_finder.evaluatePopulation(8, 8)
+
+    param_finder = OneMaxSolverParamFinder(population_size=args.pop_size,
+                                           tournament_size=args.t_size,
+                                           tournament_selections=args.t_select,
+                                           mutation_factor=args.mutation_factor,
+                                           n_generations=args.generations)
+
+    if args.load_file != "":
+        param_finder = OneMaxSolverParamFinder.load(args.load_file)
+
+    if args.run:
+        param_finder.run(n_processes=args.processes)
+        plt.plot(range(len(param_finder.history)), param_finder.history)
+        plt.title("Convergence Plot of EAofEA")
+        plt.xlabel("Generation")
+        plt.ylabel("Fitness")
+        plt.show()
+
+    if args.evaluate:
+        param_finder.evaluatePopulation(args.processes, 8)
 

@@ -1,6 +1,6 @@
 from OneMaxObject import BitString, Population
-from typing import *
 import matplotlib.pyplot as plt
+from argparse import ArgumentParser
 
 SIZE = 15   # size of the problem, the length of bitstring
 N_GENERATIONS = 1000    # number of generations
@@ -169,19 +169,37 @@ def paramSearch2():
 
 
 if __name__ == '__main__':
-    solver = LinearDecayMutationSolver(SIZE, population_size=4, init_mutation=3/15, mutation_decay=2/950/15,
-                                       min_mutation=1/15, n_gens=N_GENERATIONS)
-    solver.run(print_result=True)
+    parser = ArgumentParser()
+    parser.add_argument("--pop_size", default=15, type=int, help="The population size when run the algorithm")
+    parser.add_argument("--init_mutation", default=1.8127543060530658, type=float, help="The initial mutation at the first generation")
+    parser.add_argument("--mutation_decay", default=-0.0016558461699318148, type=float, help="decay of mutation rate in each generation")
+    parser.add_argument("--min_mutation", default=0.049647885507263775, type=float, help="the minimum value for mutation")
 
+    parser.add_argument("-r", "--run_once", help="Whether to run algorithm just once", action="store_true")
+    parser.add_argument("-e", "--evaluate", help="Whether to run the algorithm many time and evaluate",
+                        action="store_true")
+    parser.add_argument("-s", "--search_param", help="Whether to search for parameters", action="store_true")
+    parser.add_argument("-a", "--analyze_searching", help="whether to analyze the searching results", action="store_true")
 
-    # paramSearch2()
+    args = parser.parse_args()
 
-    findBestInRecord()
-
-    # init_mutation = 9/15
-    # mutation_decay = 8/750/15
-    # min_mutation = 1/30
-    # experiment(SIZE, 4, init_mutation, mutation_decay, min_mutation, N_GENERATIONS)
+    if args.run_once:
+        solver = LinearDecayMutationSolver(SIZE,
+                                           population_size=args.pop_size,
+                                           init_mutation=args.init_mutation,
+                                           mutation_decay=args.mutation_decay,
+                                           min_mutation=args.min_mutation,
+                                           n_gens=N_GENERATIONS)
+        solver.run(print_result=True)
+    elif args.evaluate:
+        experiment(SIZE, args.pop_size, args.init_mutation, args.mutation_decay, args.min_mutation, N_GENERATIONS)
+    elif args.search_param:
+        paramSearch2()
+    elif args.analyze_searching:
+        findBestInRecord()
+    else:
+        print("Wrong parameters, you must run with one of [-r, -e, -s, -a], now, run -e for default")
+        experiment(SIZE, args.pop_size, args.init_mutation, args.mutation_decay, args.min_mutation, N_GENERATIONS)
 
 
 
